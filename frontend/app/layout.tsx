@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "./src/components/lending/header";
-import { ArgusGraph } from "./src/components/lending/graph";
 import MerkleLoader from "./src/components/shared/intro";
+import { BackgroundGlow } from "./src/components/shared/background-glow";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,13 +35,7 @@ export default function RootLayout({
         <Header/>
         {children}
         <MerkleLoader/>
-
-        {/* <div className="absolute right-[-100px] top-[15%] w-[900px] h-[2600px] pointer-events-none opacity-80">
-                <ArgusGraph/>
-            </div> */}
-
-            <div className="absolute z-0 w-[350px] h-[350px] rounded-full bottom-[-100px] left-[-200px] blur-[230px] bg-[#C8FF3E]"></div>
-            <div className="absolute z-0 w-[310px] h-[310px] rounded-full top-[-100px] right-[-200px] blur-[230px] bg-[#C8FF3E]"></div>
+        <BackgroundGlow/>
       </body>
     </html>
   );
