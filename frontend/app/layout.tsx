@@ -29,16 +29,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}  antialiased overflow-hidden h-screen px-20`}
+      className={`${geistSans.variable} ${geistMono.variable}  antialiased overflow-hidden h-screen`}
     >
       <body className="min-h-full relative flex flex-col">
         <Header/>
         {children}
         <MerkleLoader/>
 
-        <div className="absolute right-[-100px] top-[15%] w-[900px] h-[2600px] pointer-events-none opacity-80">
+        {/* <div className="absolute right-[-100px] top-[15%] w-[900px] h-[2600px] pointer-events-none opacity-80">
                 <ArgusGraph/>
-            </div>
+            </div> */}
 
             <div className="absolute z-0 w-[350px] h-[350px] rounded-full bottom-[-100px] left-[-200px] blur-[230px] bg-[#C8FF3E]"></div>
             <div className="absolute z-0 w-[310px] h-[310px] rounded-full top-[-100px] right-[-200px] blur-[230px] bg-[#C8FF3E]"></div>
