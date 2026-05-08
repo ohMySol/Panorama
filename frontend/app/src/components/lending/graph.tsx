@@ -483,7 +483,7 @@ export const ArgusGraph: React.FC<
                 ctx.fillStyle = isCrit
                     ? "#FF5A5A"
                     : isHi
-                        ? "#D6FF34"
+                        ? "#с8ff3e"
                         : "rgba(180,190,205,0.7)";
 
                 ctx.beginPath();
@@ -504,7 +504,7 @@ export const ArgusGraph: React.FC<
 
                     ctx.fillStyle =
                         isHi
-                            ? "#D6FF34"
+                            ? "#C8F3EE"
                             : "#8B949E";
 
                     ctx.fillText(
