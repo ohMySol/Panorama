@@ -5,6 +5,7 @@ import "./globals.css";
 import { Header } from "./src/components/lending/header";
 import MerkleLoader from "./src/components/shared/intro";
 import { BackgroundGlow } from "./src/components/shared/background-glow";
+import { Providers } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,10 +33,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}  antialiased overflow-hidden h-screen`}
     >
       <body className="min-h-full relative flex flex-col">
-        <Header/>
-        {children}
-        <MerkleLoader/>
-        <BackgroundGlow/>
+        <Providers>
+          <Header/>
+          {children}
+          <MerkleLoader/>
+          <BackgroundGlow/>
+        </Providers>
       </body>
     </html>
   );

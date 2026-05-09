@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { DependencyTree } from "./dependency-tree"
-import { NodeInfo } from "./node-info"
+import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
 
 export const LeftTab = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const { data } = useLatestGraphAnalysis();
 
     return (
         <div className={`flex flex-col h-full border-r border-r-gray-400 transition-all duration-300 ${
@@ -20,7 +21,7 @@ export const LeftTab = () => {
                 <span className="text-xs">{isCollapsed ? '›' : '‹'}</span>
             </button>
             
-            <DependencyTree/>
+            <DependencyTree graphData={data} />
         </div>
     )
 }

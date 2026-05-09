@@ -1,93 +1,20 @@
 "use client"
 
 import { useState } from "react";
+import type { GraphResponse, GraphNode, GraphEdge } from "@risk-terminal/shared";
 
 interface TreeNode {
     id: string;
     name: string;
     type: string;
     color: "orange" | "green" | "red";
+    riskScore: number;
     children?: TreeNode[];
 }
 
-const treeData: TreeNode = {
-    id: "root",
-    name: "Morpho Blue Market",
-    type: "ROOT",
-    color: "orange",
-    children: [
-        {
-            id: "protocol-1",
-            name: "Morpho Blue Core",
-            type: "PROTOCOL",
-            color: "green",
-            children: [
-                {
-                    id: "multisig-1",
-                    name: "Morpho DAO Multis...",
-                    type: "5/9",
-                    color: "orange",
-                }
-            ]
-        },
-        {
-            id: "module-1",
-            name: "Adaptive Curve I...",
-            type: "MODULE",
-            color: "green",
-        },
-        {
-            id: "oracle-1",
-            name: "MorphoChainLinkO...",
-            type: "ORACLE",
-            color: "red",
-            children: [
-                {
-                    id: "feed-1",
-                    name: "Chainlink Aggreg...",
-                    type: "FEED",
-                    color: "orange",
-                }
-            ]
-        },
-        {
-            id: "asset-1",
-            name: "weETH (Token)",
-            type: "ASSET",
-            color: "orange",
-            children: [
-                {
-                    id: "issuer-1",
-                    name: "EtherFi Liquidi...",
-                    type: "ISSUER",
-                    color: "orange",
-                    children: [
-                        {
-                            id: "admin-1",
-                            name: "EtherFi 4/7 Mu...",
-                            type: "ADMIN",
-                            color: "red",
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            id: "asset-2",
-            name: "USDC (Token)",
-            type: "ASSET",
-            color: "green",
-            children: [
-                {
-                    id: "entity-1",
-                    name: "Circle Issuer",
-                    type: "ENTITY",
-                    color: "green",
-                }
-            ]
-        }
-    ]
-};
+interface DependencyTreeProps {
+    graphData?: GraphResponse;
+}
 
 const TreeItem = ({ node, level = 0 }: { node: TreeNode; level?: number }) => {
     const [isExpanded, setIsExpanded] = useState(true);
@@ -114,7 +41,9 @@ const TreeItem = ({ node, level = 0 }: { node: TreeNode; level?: number }) => {
                         </span>
                     )}
                     
-                    <span className="text-[14px] text-gray-300 font-mono">{node.name}</span>
+                    <span className="text-[14px] text-gray-300 font-mono truncate max-w-[180px]">
+                        {node.name}
+                    </span>
                 </div>
                 
                 <span className="text-[11px] text-gray-500 uppercase font-mono">{node.type}</span>
@@ -131,7 +60,64 @@ const TreeItem = ({ node, level = 0 }: { node: TreeNode; level?: number }) => {
     );
 };
 
-export const DependencyTree = () => {
+export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
+    const buildTree = (data: GraphResponse): TreeNode | null => {
+        if (!data || !data.nodes || data.nodes.length === 0) return null;
+
+        // Create a map of nodes by address
+        const nodeMap = new Map<string, GraphNode>();
+        data.nodes.forEach(node => {
+            nodeMap.set(node.address, node);
+        });
+
+        // Create a map to track children for each node
+        const childrenMap = new Map<string, string[]>();
+        data.edges.forEach(edge => {
+            if (!childrenMap.has(edge.from)) {
+                childrenMap.set(edge.from, []);
+            }
+            childrenMap.get(edge.from)!.push(edge.to);
+        });
+
+        // Helper function to determine color based on risk score
+        const getColor = (riskScore: number): "orange" | "green" | "red" => {
+            if (riskScore < 30) return "green";
+            if (riskScore < 70) return "orange";
+            return "red";
+        };
+
+        // Recursive function to build tree
+        const buildNode = (address: string, visited = new Set<string>()): TreeNode | null => {
+            if (visited.has(address)) return null; // Prevent cycles
+            visited.add(address);
+
+            const graphNode = nodeMap.get(address);
+            if (!graphNode) return null;
+
+            const children: TreeNode[] = [];
+            const childAddresses = childrenMap.get(address) || [];
+            
+            childAddresses.forEach(childAddress => {
+                const childNode = buildNode(childAddress, new Set(visited));
+                if (childNode) {
+                    children.push(childNode);
+                }
+            });
+
+            return {
+                id: graphNode.address,
+                name: graphNode.name || `${graphNode.address.slice(0, 6)}...${graphNode.address.slice(-4)}`,
+                type: graphNode.type.toUpperCase(),
+                color: getColor(graphNode.riskScore),
+                riskScore: graphNode.riskScore,
+                children: children.length > 0 ? children : undefined,
+            };
+        };
+
+        // Build tree starting from root
+        return buildNode(data.root);
+    };
+
     const countNodes = (node: TreeNode): number => {
         let count = 1;
         if (node.children) {
@@ -141,6 +127,30 @@ export const DependencyTree = () => {
         }
         return count;
     };
+
+    if (!graphData) {
+        return (
+            <div className="flex flex-col py-5 px-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h5 className="text-[15px] font-display text-[#C8FF3E]">DEPENDENCY TREE</h5>
+                </div>
+                <div className="text-gray-400 text-sm">No data available</div>
+            </div>
+        );
+    }
+
+    const treeData = buildTree(graphData);
+    
+    if (!treeData) {
+        return (
+            <div className="flex flex-col py-5 px-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h5 className="text-[15px] font-display text-[#C8FF3E]">DEPENDENCY TREE</h5>
+                </div>
+                <div className="text-gray-400 text-sm">Unable to build tree</div>
+            </div>
+        );
+    }
 
     const totalNodes = countNodes(treeData);
 
@@ -155,5 +165,5 @@ export const DependencyTree = () => {
                 <TreeItem node={treeData} />
             </div>
         </div>
-    )
-}
+    );
+};

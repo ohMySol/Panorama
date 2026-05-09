@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import type { GraphResponse, GraphNode as BackendGraphNode, GraphEdge as BackendGraphEdge } from "@risk-terminal/shared";
+import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
 
 interface Node {
     id: string;
     label: string;
     subtitle: string;
-    type: "root" | "protocol" | "oracle" | "collateral" | "admin" | "feed" | "issuer" | "multisig";
+    type: string;
     risk: number;
     x: number;
     y: number;
@@ -16,29 +18,6 @@ interface Edge {
     from: string;
     to: string;
 }
-
-const nodes: Node[] = [
-    { id: "market", label: "Morpho Blue Market", subtitle: "weETH / USDC · 86% LLTV", type: "root", risk: 62, x: 400, y: 80 },
-    { id: "protocol", label: "Morpho Blue Core", subtitle: "SINGLETON", type: "protocol", risk: 35, x: 100, y: 250 },
-    { id: "curve", label: "Adaptive Curve", subtitle: "RATE MODEL", type: "protocol", risk: 28, x: 250, y: 250 },
-    { id: "oracle", label: "MorphoChainlinkOracle", subtitle: "ORACLE", type: "oracle", risk: 65, x: 400, y: 250 },
-    { id: "weeth", label: "weETH", subtitle: "COLLATERAL", type: "collateral", risk: 58, x: 700, y: 250 },
-    { id: "multisig", label: "Morpho DAO Multisig", subtitle: "ADMIN", type: "multisig", risk: 51, x: 100, y: 450 },
-    { id: "aggregator", label: "Chainlink Aggregator", subtitle: "FEED", type: "feed", risk: 42, x: 400, y: 450 },
-    { id: "etherfi", label: "EtherFi LiquidityPool", subtitle: "ISSUER", type: "issuer", risk: 64, x: 700, y: 450 },
-    { id: "etherfi-multisig", label: "EtherFi 4/7 Multisig", subtitle: "ADMIN", type: "multisig", risk: 67, x: 700, y: 620 },
-];
-
-const edges: Edge[] = [
-    { from: "market", to: "protocol" },
-    { from: "market", to: "curve" },
-    { from: "market", to: "oracle" },
-    { from: "market", to: "weeth" },
-    { from: "protocol", to: "multisig" },
-    { from: "oracle", to: "aggregator" },
-    { from: "weeth", to: "etherfi" },
-    { from: "etherfi", to: "etherfi-multisig" },
-];
 
 const getRiskColor = (risk: number) => {
     if (risk < 40) return "#4ade80";
@@ -55,6 +34,73 @@ export const DashboardGraph = () => {
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const [isPanning, setIsPanning] = useState(false);
     const panStartRef = useRef({ x: 0, y: 0 });
+    const { data: graphData } = useLatestGraphAnalysis();
+
+    // Convert backend data to graph layout
+    const { nodes, edges } = useMemo(() => {
+        if (!graphData) {
+            return { nodes: [], edges: [] };
+        }
+
+        // Build adjacency map to understand hierarchy
+        const childrenMap = new Map<string, string[]>();
+        graphData.edges.forEach(edge => {
+            if (!childrenMap.has(edge.from)) {
+                childrenMap.set(edge.from, []);
+            }
+            childrenMap.get(edge.from)!.push(edge.to);
+        });
+
+        // Calculate positions using hierarchical layout
+        const nodePositions = new Map<string, { x: number; y: number; level: number }>();
+        const visited = new Set<string>();
+        
+        const calculatePositions = (address: string, level: number, parentX: number, siblingIndex: number, totalSiblings: number) => {
+            if (visited.has(address)) return;
+            visited.add(address);
+
+            const levelHeight = 200;
+            const y = 80 + level * levelHeight;
+            
+            // Spread nodes horizontally based on their position among siblings
+            const spreadWidth = 800;
+            const x = parentX + (siblingIndex - (totalSiblings - 1) / 2) * (spreadWidth / Math.max(totalSiblings, 1));
+
+            nodePositions.set(address, { x, y, level });
+
+            const children = childrenMap.get(address) || [];
+            children.forEach((childAddress, index) => {
+                calculatePositions(childAddress, level + 1, x, index, children.length);
+            });
+        };
+
+        // Start from root
+        calculatePositions(graphData.root, 0, 400, 0, 1);
+
+        // Convert to Node format
+        const layoutNodes: Node[] = graphData.nodes.map(node => {
+            const pos = nodePositions.get(node.address) || { x: 400, y: 400, level: 0 };
+            const isRoot = node.address === graphData.root;
+            
+            return {
+                id: node.address,
+                label: node.name || `${node.address.slice(0, 6)}...${node.address.slice(-4)}`,
+                subtitle: node.type.toUpperCase(),
+                type: isRoot ? "root" : node.type,
+                risk: node.riskScore,
+                x: pos.x,
+                y: pos.y,
+            };
+        });
+
+        // Convert edges
+        const layoutEdges: Edge[] = graphData.edges.map(edge => ({
+            from: edge.from,
+            to: edge.to,
+        }));
+
+        return { nodes: layoutNodes, edges: layoutEdges };
+    }, [graphData]);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -74,7 +120,6 @@ export const DashboardGraph = () => {
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
-    // Optimized zoom handler
     const handleWheel = useCallback((e: WheelEvent) => {
         e.preventDefault();
         
@@ -106,7 +151,6 @@ export const DashboardGraph = () => {
         return () => container.removeEventListener("wheel", handleWheel);
     }, [handleWheel]);
 
-    // Optimized pan handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         if (e.button === 0) {
             setIsPanning(true);
@@ -139,7 +183,7 @@ export const DashboardGraph = () => {
         }
     }, [isPanning, handleMouseMove, handleMouseUp]);
 
-    const getNodeById = useCallback((id: string) => nodes.find(n => n.id === id), []);
+    const getNodeById = useCallback((id: string) => nodes.find(n => n.id === id), [nodes]);
 
     const handleResetZoom = useCallback(() => {
         setTransform({ x: 0, y: 0, scale: 1 });
@@ -153,7 +197,6 @@ export const DashboardGraph = () => {
         setTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.2, 0.3) }));
     }, []);
 
-    // Memoize edge paths to avoid recalculation
     const edgePaths = useMemo(() => {
         return edges.map((edge, i) => {
             const from = getNodeById(edge.from);
@@ -177,7 +220,15 @@ export const DashboardGraph = () => {
                 toNode: to,
             };
         }).filter(Boolean);
-    }, [getNodeById]);
+    }, [edges, getNodeById]);
+
+    if (!graphData) {
+        return (
+            <div className="flex flex-1 items-center justify-center bg-[#0a0a0a]">
+                <div className="text-gray-400">No graph data available</div>
+            </div>
+        );
+    }
 
     return (
         <div 
