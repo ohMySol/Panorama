@@ -1,6 +1,7 @@
 import type { AbiItem } from '../../clients/sourcify.client';
 import { getAbiFunctionNames } from '../router.service';
 import erc20 from './protocols/erc20.json';
+import morphoBlue from './protocols/morpho-blue.json';
 import morphoV1 from './protocols/morpho-vault-v1.json';
 import morphoV2 from './protocols/morpho-vault-v2.json';
 import safeMultisig from './protocols/safe-multisig.json';
@@ -14,6 +15,7 @@ import type { ProtocolManifest } from './types';
 const MANIFESTS: readonly ProtocolManifest[] = [
     morphoV1 as ProtocolManifest,
     morphoV2 as ProtocolManifest,
+    morphoBlue as ProtocolManifest,
     safeMultisig as ProtocolManifest,
     erc20 as ProtocolManifest,
 ];

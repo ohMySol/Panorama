@@ -4,7 +4,7 @@ import type { Abi } from 'viem';
  * Stable string identifying a protocol family. Used by the risk profile registry
  * (`risk/index.ts`) and surfaced on `GraphNode.type`.
  */
-export type AdapterKind = 'morpho' | 'morphoV2' | 'erc20' | 'safe' | 'fallback';
+export type AdapterKind = 'morphoBlue' | 'morpho' | 'morphoV2' | 'erc20' | 'safe' | 'fallback';
 
 /**
  * One outbound edge a manifest discovered for a contract.
@@ -41,6 +41,14 @@ export interface AdapterDependency {
  */
 export interface ProtocolManifest {
     id: AdapterKind;
+    /**
+     * Human-readable category surfaced on `GraphNode.category`. Drives the
+     * category chip in the UI ("Vault", "Market", "Token", "Multisig",
+     * "Oracle", …) and is also useful for grouping / colouring nodes.
+     * Distinct from `id` — multiple manifests can share a category (Morpho V1
+     * and Morpho V2 are both "Vault").
+     */
+    category: string;
     fingerprint: string[];
     directCalls?: DirectCall[];
     paginatedCalls?: PaginatedCall[];

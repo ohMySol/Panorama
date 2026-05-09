@@ -55,6 +55,13 @@ export interface GraphNode  extends ResolvedDependency {
     riskFlags: string[];
     tvlUsd: number | null;
     type: string;
+    /**
+     * User-facing category derived from the matched protocol manifest
+     * ("Vault", "Market", "Token", "Multisig", …). `null` when no manifest
+     * matched — the frontend should render a neutral "Contract" chip in that
+     * case rather than exposing the technical fallback label.
+     */
+    category: string | null;
     metadata: Record<string, string | number | boolean>;
 }
 

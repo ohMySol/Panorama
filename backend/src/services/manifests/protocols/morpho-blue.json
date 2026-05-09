@@ -1,0 +1,9 @@
+{
+    "id": "morphoBlue",
+    "category": "Market",
+    "fingerprint": ["idToMarketParams", "createMarket", "accrueInterest"],
+    "metadataCalls": [
+        { "function": "owner",        "field": "owner"        },
+        { "function": "feeRecipient", "field": "feeRecipient" }
+    ]
+}

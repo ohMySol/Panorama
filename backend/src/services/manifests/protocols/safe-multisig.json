@@ -1,5 +1,6 @@
 {
     "id": "safe",
+    "category": "Multisig",
     "fingerprint": ["getOwners", "getThreshold", "isOwner"],
     "metadataCalls": [
         { "function": "getOwners",    "field": "signerCount",     "project": "length" },

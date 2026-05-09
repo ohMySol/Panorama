@@ -98,6 +98,7 @@ export async function buildDependencyGraph(
             riskFlags: findings.map((f) => f.label),
             tvlUsd: null,
             type: adapterKind,
+            category: manifest?.category ?? null,
             metadata: result.metadata,
         };
         nodesByAddress.set(resolved.address.toLowerCase(), node);

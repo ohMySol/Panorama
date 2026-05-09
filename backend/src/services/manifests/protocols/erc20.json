@@ -1,5 +1,6 @@
 {
     "id": "erc20",
+    "category": "Token",
     "fingerprint": ["transfer", "balanceOf", "totalSupply"],
     "metadataCalls": [
         { "function": "symbol",   "field": "symbol"   },

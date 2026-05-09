@@ -1,5 +1,6 @@
 {
     "id": "morpho",
+    "category": "Vault",
     "fingerprint": ["asset", "MORPHO", "supplyQueue"],
     "directCalls": [
         { "function": "asset",    "role": "loanToken"    },

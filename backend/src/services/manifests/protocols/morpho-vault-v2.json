@@ -1,5 +1,6 @@
 {
     "id": "morphoV2",
+    "category": "Vault",
     "fingerprint": ["asset", "adaptersLength", "adapterRegistry", "liquidityAdapter"],
     "directCalls": [
         { "function": "asset",            "role": "loanToken"        },
