@@ -1,0 +1,4 @@
+{
+    "id": "erc20",
+    "fingerprint": ["transfer", "balanceOf", "totalSupply"]
+}

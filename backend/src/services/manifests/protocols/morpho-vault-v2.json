@@ -1,0 +1,21 @@
+{
+    "id": "morphoV2",
+    "fingerprint": ["asset", "adaptersLength", "adapterRegistry", "liquidityAdapter"],
+    "directCalls": [
+        { "function": "asset",            "role": "loanToken"        },
+        { "function": "adapterRegistry",  "role": "adapterRegistry"  },
+        { "function": "liquidityAdapter", "role": "liquidityAdapter" },
+        { "function": "curator",          "role": "curator"          },
+        { "function": "owner",            "role": "owner"            }
+    ],
+    "paginatedCalls": [
+        {
+            "sources": [
+                { "lengthFunction": "adaptersLength", "itemFunction": "adapters" }
+            ],
+            "itemType": "address",
+            "maxItemsPerSource": 5,
+            "role": "protocolAdapter"
+        }
+    ]
+}

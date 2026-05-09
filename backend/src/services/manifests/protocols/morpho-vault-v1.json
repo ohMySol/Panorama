@@ -1,0 +1,44 @@
+{
+    "id": "morpho",
+    "fingerprint": ["asset", "MORPHO", "supplyQueue"],
+    "directCalls": [
+        { "function": "asset",    "role": "loanToken"    },
+        { "function": "MORPHO",   "role": "protocolCore" },
+        { "function": "curator",  "role": "curator"      },
+        { "function": "guardian", "role": "guardian"     },
+        { "function": "owner",    "role": "owner"        }
+    ],
+    "paginatedCalls": [
+        {
+            "sources": [
+                { "lengthFunction": "supplyQueueLength",   "itemFunction": "supplyQueue"   },
+                { "lengthFunction": "withdrawQueueLength", "itemFunction": "withdrawQueue" }
+            ],
+            "itemType": "bytes32",
+            "maxItemsPerSource": 5,
+            "followUp": {
+                "addressFromRole": "protocolCore",
+                "function": {
+                    "type": "function",
+                    "name": "idToMarketParams",
+                    "stateMutability": "view",
+                    "inputs":  [{ "type": "bytes32" }],
+                    "outputs": [
+                        { "type": "address", "name": "loanToken"       },
+                        { "type": "address", "name": "collateralToken" },
+                        { "type": "address", "name": "oracle"          },
+                        { "type": "address", "name": "irm"             },
+                        { "type": "uint256", "name": "lltv"            }
+                    ]
+                },
+                "extract": [
+                    { "index": 0, "role": "loanToken"         },
+                    { "index": 1, "role": "collateralToken"   },
+                    { "index": 2, "role": "oracle"            },
+                    { "index": 3, "role": "interestRateModel" }
+                ],
+                "anchorFromTarget": true
+            }
+        }
+    ]
+}
