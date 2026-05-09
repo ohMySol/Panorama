@@ -15,7 +15,6 @@ export const ScanInput = () => {
     const handleSubmit = () => {
         setError("");
 
-        // Validate request
         const validation = validateBuildGraphRequest({
             address,
             chain_id: API_CONFIG.SUPPORTED_CHAINS.ethereum,
@@ -27,7 +26,6 @@ export const ScanInput = () => {
             return;
         }
 
-        // Make API request
         mutation.mutate(
             {
                 address,
@@ -36,7 +34,6 @@ export const ScanInput = () => {
             },
             {
                 onSuccess: (data) => {
-                    // Check if graph has more than 1 node (has dependencies)
                     if (data.nodes.length <= 1) {
                         setError("No dependencies found for this contract. The contract has no external dependencies to analyze.");
                         return;

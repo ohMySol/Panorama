@@ -1,1 +1,218 @@
-Panorama
+# Panorama
+
+> **Map every dependency. Score every risk.**
+
+Panorama is a smart contract dependency analyzer that visualizes the entire dependency graph of Ethereum contracts and assigns quantified risk scores to every node in the chain.
+
+![Panorama Hero](docs/screenshots/hero.png)
+
+## 🎯 What is Panorama?
+
+Panorama walks the dependency graph from any smart contract entry point down through protocols, oracles, modules, admins, and token issuers - attaching a quantified risk score to every node. It helps developers and security researchers understand the complete attack surface of their smart contracts.
+
+## ✨ Features
+
+- **Dependency Graph Visualization** - Interactive hierarchical graph showing all contract dependencies
+- **Risk Scoring** - Quantified risk scores (0-100) for every contract in the dependency chain
+- **Color-Coded Risk Levels** - Visual indicators for low, medium, high, and critical risk
+- **Dependency Tree View** - Hierarchical tree structure showing parent-child relationships
+- 📈 **Real-time Analysis** - Instant contract analysis with live data from Ethereum mainnet
+- **Detailed Metadata** - Contract tier, source availability, TVL, and risk flags
+- **Interactive Nodes** - Click any node to view detailed information
+- **Draggable Graph** - Move nodes around to customize your view
+- **Zoom & Pan** - Navigate large dependency graphs with ease
+
+![Panorama Dashboard](docs/screenshots/dashboard.png)
+
+## 🏗️ Architecture
+
+### Frontend
+- **Next.js 16** - React framework with App Router
+- **React 19** - Latest React with concurrent features
+- **TailwindCSS 4** - Utility-first CSS framework
+- **TanStack Query** - Powerful data fetching and caching
+- **TypeScript** - Type-safe development
+
+### Backend
+- **Express** - Fast, minimalist web framework
+- **TypeScript** - Type-safe backend development
+- **Viem** - Lightweight Ethereum library
+- **Etherscan API** - Contract verification and source code
+- **Sourcify API** - Decentralized contract verification
+- **DeFiLlama API** - TVL and protocol data
+
+### Infrastructure
+- **Docker** - Containerized deployment
+- **Docker Compose** - Multi-container orchestration
+- **Monorepo** - Shared types between frontend and backend
+
+## 🚀 Quick Start
+
+### Using Docker (Recommended)
+
+```bash
+# Start the entire stack
+docker-compose up
+
+# Or use the convenience script
+./start.sh
+```
+
+**Access:**
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
+
+### Manual Setup
+
+**Backend:**
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 📖 Usage
+
+1. **Enter a Contract Address** - Paste any Ethereum contract address into the input field
+2. **Analyze** - Click "Analyze" or press Enter to start the analysis
+3. **Explore the Graph** - View the interactive dependency graph with risk scores
+4. **Inspect Nodes** - Click on any node to see detailed information
+5. **Navigate** - Use zoom controls and drag nodes to customize your view
+
+### Example Contracts to Try
+
+```
+0xA1D94F746dEfa1928926b84fB2596c06926C0405
+```
+
+## 🎨 Risk Scoring
+
+Panorama assigns risk scores based on multiple factors:
+
+- **0-39** 🟢 **Low Risk** - Well-audited, verified contracts
+- **40-59** � **Medium Risk** - Some risk factors present
+- **60-79** 🟠 **High Risk** - Multiple risk factors
+- **80-100** 🔴 **Critical Risk** - Significant security concerns
+
+### Risk Factors Include:
+- Contract upgradeability
+- Role-based access control (RBAC)
+- Timelocks and governance
+- Source code availability
+- Contract verification status
+- Protocol tier classification
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+panorama/
+├── frontend/           # Next.js frontend application
+│   ├── app/           # App router pages
+│   ├── lib/           # Utilities, hooks, API clients
+│   └── public/        # Static assets
+├── backend/           # Express backend API
+│   └── src/
+│       ├── clients/   # External API clients
+│       ├── services/  # Business logic
+│       └── routes/    # API routes
+├── packages/
+│   └── shared/        # Shared TypeScript types
+└── docs/              # Documentation and screenshots
+```
+
+### Available Commands
+
+**Docker:**
+```bash
+make dev       # Start development environment
+make prod      # Start production environment
+make logs      # View logs
+make down      # Stop containers
+make clean     # Remove all containers and volumes
+```
+
+**Development:**
+```bash
+# Backend
+cd backend
+npm run dev    # Start dev server with hot reload
+
+# Frontend
+cd frontend
+npm run dev    # Start Next.js dev server
+npm run build  # Build for production
+npm run start  # Start production server
+```
+
+## � Configuration
+
+### Environment Variables
+
+**Frontend** (`.env.local`):
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
+
+**Backend** (`.env`):
+```env
+PORT=5000
+ETHERSCAN_API_KEY=your_api_key_here
+```
+
+## 📚 API Documentation
+
+### Endpoints
+
+**POST** `/api/graph/build`
+```json
+{
+  "address": "0x...",
+  "chain_id": 1,
+  "depth": 3
+}
+```
+
+**Response:**
+```json
+{
+  "root": "0x...",
+  "nodes": [...],
+  "edges": [...],
+  "graphRiskScore": 45,
+  "summary": "..."
+}
+```
+
+## 📖 Documentation
+
+- [Features](docs/FEATURES.md) - Detailed feature list
+- [FAQ](docs/FAQ.md) - Frequently asked questions
+- [Docker Setup](DOCKER.md) - Docker deployment guide
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the ISC License.
+
+## 🙏 Acknowledgments
+
+- Etherscan for contract verification data
+- Sourcify for decentralized verification
+- DeFiLlama for TVL and protocol data
+- The Ethereum community
+
+---
+
+**Built with ❤️ for the Ethereum ecosystem**

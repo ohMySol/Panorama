@@ -18,13 +18,11 @@ export default function DashboardPage() {
   const mutation = useBuildGraph();
 
   useEffect(() => {
-    // Validate address from URL
     if (!address || !validateAddress(address)) {
       router.push("/");
       return;
     }
 
-    // If no data in cache, fetch it
     if (!isLoading && !data && !mutation.isPending) {
       mutation.mutate({
         address,

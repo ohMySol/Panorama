@@ -64,13 +64,11 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
     const buildTree = (data: GraphResponse): TreeNode | null => {
         if (!data || !data.nodes || data.nodes.length === 0) return null;
 
-        // Create a map of nodes by address
         const nodeMap = new Map<string, GraphNode>();
         data.nodes.forEach(node => {
             nodeMap.set(node.address, node);
         });
 
-        // Create a map to track children for each node
         const childrenMap = new Map<string, string[]>();
         data.edges.forEach(edge => {
             if (!childrenMap.has(edge.from)) {
@@ -114,7 +112,6 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
             };
         };
 
-        // Build tree starting from root
         return buildNode(data.root);
     };
 

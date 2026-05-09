@@ -42,13 +42,11 @@ export const DashboardGraph = () => {
     const { data: graphData } = useLatestGraphAnalysis();
     const { setSelectedNode } = useSelectedNode();
 
-    // Convert backend data to graph layout
     const { initialNodes, edges } = useMemo(() => {
         if (!graphData) {
             return { initialNodes: [], edges: [] };
         }
 
-        // Build adjacency map to understand hierarchy
         const childrenMap = new Map<string, string[]>();
         graphData.edges.forEach(edge => {
             if (!childrenMap.has(edge.from)) {
@@ -57,7 +55,6 @@ export const DashboardGraph = () => {
             childrenMap.get(edge.from)!.push(edge.to);
         });
 
-        // Calculate positions using hierarchical layout with MORE SPACING
         const calculatedPositions = new Map<string, { x: number; y: number; level: number }>();
         const visited = new Set<string>();
         
@@ -65,11 +62,10 @@ export const DashboardGraph = () => {
             if (visited.has(address)) return;
             visited.add(address);
 
-            const levelHeight = 300; // Increased from 200
+            const levelHeight = 300;
             const y = 100 + level * levelHeight;
             
-            // Much wider spread for siblings
-            const spreadWidth = 1200; // Increased from 800
+            const spreadWidth = 1200;
             const x = parentX + (siblingIndex - (totalSiblings - 1) / 2) * (spreadWidth / Math.max(totalSiblings, 1));
 
             calculatedPositions.set(address, { x, y, level });
@@ -80,10 +76,8 @@ export const DashboardGraph = () => {
             });
         };
 
-        // Start from root with centered position
         calculatePositions(graphData.root, 0, 600, 0, 1);
 
-        // Convert to Node format
         const layoutNodes: Node[] = graphData.nodes.map(node => {
             const pos = calculatedPositions.get(node.address) || { x: 600, y: 400, level: 0 };
             const isRoot = node.address === graphData.root;
@@ -99,7 +93,6 @@ export const DashboardGraph = () => {
             };
         });
 
-        // Convert edges
         const layoutEdges: Edge[] = graphData.edges.map(edge => ({
             from: edge.from,
             to: edge.to,
@@ -108,7 +101,6 @@ export const DashboardGraph = () => {
         return { initialNodes: layoutNodes, edges: layoutEdges };
     }, [graphData]);
 
-    // Initialize node positions
     useEffect(() => {
         const positions = new Map<string, { x: number; y: number }>();
         initialNodes.forEach(node => {
@@ -117,7 +109,6 @@ export const DashboardGraph = () => {
         setNodePositions(positions);
     }, [initialNodes]);
 
-    // Get current nodes with updated positions
     const nodes = useMemo(() => {
         return initialNodes.map(node => ({
             ...node,
@@ -206,12 +197,10 @@ export const DashboardGraph = () => {
                 y: e.clientY - panStartRef.current.y,
             }));
         } else if (draggedNode) {
-            // Cancel previous frame if it hasn't executed yet
             if (rafIdRef.current !== null) {
                 cancelAnimationFrame(rafIdRef.current);
             }
             
-            // Use requestAnimationFrame to throttle updates
             rafIdRef.current = requestAnimationFrame(() => {
                 const dx = (e.clientX - dragStartRef.current.x) / transform.scale;
                 const dy = (e.clientY - dragStartRef.current.y) / transform.scale;
@@ -234,7 +223,6 @@ export const DashboardGraph = () => {
         setIsPanning(false);
         setDraggedNode(null);
         
-        // Cancel any pending animation frame
         if (rafIdRef.current !== null) {
             cancelAnimationFrame(rafIdRef.current);
             rafIdRef.current = null;

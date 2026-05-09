@@ -47,7 +47,7 @@ export default function MerkleLoader() {
       
       const fadeTimer = setTimeout(() => {
         setIsFadingOut(true);
-      }, 2000); // Start fading after 2 seconds
+      }, 2000);
       
       const hideTimer = setTimeout(() => {
         setIsLoading(false);
