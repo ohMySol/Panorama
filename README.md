@@ -1,8 +1,16 @@
-# Panorama
+<p align="center">
+  <img src="frontend/public/argus-logo.png" alt="Panorama Logo" width="80" height="80">
+</p>
 
-> **Map every dependency. Score every risk.**
+<h1 align="center">Panorama</h1>
 
+<p align="center">
+  <strong>Map every dependency. Score every risk.</strong>
+</p>
+
+<p align="center">
 Panorama is a smart contract dependency analyzer that visualizes the entire dependency graph of Ethereum contracts and assigns quantified risk scores to every node in the chain.
+</p>
 
 ![Panorama Hero](docs/screenshots/hero.png)
 
