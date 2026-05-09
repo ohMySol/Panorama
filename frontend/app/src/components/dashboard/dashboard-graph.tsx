@@ -20,13 +20,6 @@ interface Edge {
     to: string;
 }
 
-const getRiskColor = (risk: number) => {
-    if (risk < 40) return "#4ade80";
-    if (risk < 60) return "#C8FF3E";
-    if (risk < 80) return "#fb923c";
-    return "#ef4444";
-};
-
 export const DashboardGraph = () => {
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -320,7 +313,7 @@ export const DashboardGraph = () => {
                                 <path
                                     key={edge.key}
                                     d={edge.path}
-                                    stroke={isHighlighted ? getRiskColor(Math.max(edge.fromNode.risk, edge.toNode.risk)) : "#2a2a2a"}
+                                    stroke={isHighlighted ? "#C8FF3E" : "#2a2a2a"}
                                     strokeWidth={isHighlighted ? 2.5 : 1.5}
                                     fill="none"
                                     strokeDasharray={edge.fromNode.type === "root" || edge.toNode.type === "root" ? "0" : "4 4"}
@@ -333,7 +326,7 @@ export const DashboardGraph = () => {
                         {nodes.map((node) => {
                             const isHovered = hoveredNode === node.id;
                             const isRoot = node.type === "root";
-                            const color = getRiskColor(node.risk);
+                            const color = "#C8FF3E";
                             const width = isRoot ? 380 : 220;
                             const height = isRoot ? 80 : 60;
 
@@ -397,19 +390,6 @@ export const DashboardGraph = () => {
                                     >
                                         {node.subtitle}
                                     </text>
-
-                                    <text
-                                        x={width - 16}
-                                        y={height / 2 + 6}
-                                        fill={color}
-                                        fontSize={isRoot ? 20 : 16}
-                                        fontFamily="monospace"
-                                        fontWeight="bold"
-                                        textAnchor="end"
-                                        pointerEvents="none"
-                                    >
-                                        {node.risk}
-                                    </text>
                                 </g>
                             );
                         })}
@@ -439,25 +419,6 @@ export const DashboardGraph = () => {
                 >
                     ⟲
                 </button>
-            </div>
-
-            <div className="absolute bottom-6 left-6 flex items-center gap-6 text-xs font-mono">
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-[#4ade80]" />
-                    <span className="text-gray-500">LOW 0-39</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-[#C8FF3E]" />
-                    <span className="text-gray-500">MED 40-59</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-[#fb923c]" />
-                    <span className="text-gray-500">HIGH 60-79</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-[#ef4444]" />
-                    <span className="text-gray-500">CRIT 80-100</span>
-                </div>
             </div>
 
             <div className="absolute bottom-6 right-6 text-xs font-mono text-gray-500">
