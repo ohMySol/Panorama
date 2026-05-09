@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 
 interface Node {
     id: string;
@@ -41,10 +41,10 @@ const edges: Edge[] = [
 ];
 
 const getRiskColor = (risk: number) => {
-    if (risk < 40) return "#4ade80"; // green - LOW
-    if (risk < 60) return "#C8FF3E"; // lime - MED
-    if (risk < 80) return "#fb923c"; // orange - HIGH
-    return "#ef4444"; // red - CRIT
+    if (risk < 40) return "#4ade80";
+    if (risk < 60) return "#C8FF3E";
+    if (risk < 80) return "#fb923c";
+    return "#ef4444";
 };
 
 export const DashboardGraph = () => {
@@ -54,7 +54,7 @@ export const DashboardGraph = () => {
     const [dimensions, setDimensions] = useState({ width: 800, height: 700 });
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const [isPanning, setIsPanning] = useState(false);
-    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const panStartRef = useRef({ x: 0, y: 0 });
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -74,86 +74,117 @@ export const DashboardGraph = () => {
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
-    // Zoom with mouse wheel
+    // Optimized zoom handler
+    const handleWheel = useCallback((e: WheelEvent) => {
+        e.preventDefault();
+        
+        const delta = e.deltaY * -0.001;
+        const newScale = Math.min(Math.max(0.3, transform.scale + delta), 3);
+        
+        if (!containerRef.current) return;
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const scaleRatio = newScale / transform.scale;
+        const newX = mouseX - (mouseX - transform.x) * scaleRatio;
+        const newY = mouseY - (mouseY - transform.y) * scaleRatio;
+        
+        setTransform({
+            x: newX,
+            y: newY,
+            scale: newScale,
+        });
+    }, [transform.scale, transform.x, transform.y]);
+
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
-
-        const handleWheel = (e: WheelEvent) => {
-            e.preventDefault();
-            
-            const delta = e.deltaY * -0.001;
-            const newScale = Math.min(Math.max(0.3, transform.scale + delta), 3);
-            
-            // Zoom towards mouse position
-            const rect = container.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            
-            const scaleRatio = newScale / transform.scale;
-            const newX = mouseX - (mouseX - transform.x) * scaleRatio;
-            const newY = mouseY - (mouseY - transform.y) * scaleRatio;
-            
-            setTransform({
-                x: newX,
-                y: newY,
-                scale: newScale,
-            });
-        };
 
         container.addEventListener("wheel", handleWheel, { passive: false });
         return () => container.removeEventListener("wheel", handleWheel);
-    }, [transform]);
+    }, [handleWheel]);
 
-    // Pan with mouse drag
+    // Optimized pan handlers
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        if (e.button === 0) {
+            setIsPanning(true);
+            panStartRef.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+        }
+    }, [transform.x, transform.y]);
+
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (isPanning) {
+            setTransform(prev => ({
+                ...prev,
+                x: e.clientX - panStartRef.current.x,
+                y: e.clientY - panStartRef.current.y,
+            }));
+        }
+    }, [isPanning]);
+
+    const handleMouseUp = useCallback(() => {
+        setIsPanning(false);
+    }, []);
+
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
+        if (isPanning) {
+            window.addEventListener("mousemove", handleMouseMove);
+            window.addEventListener("mouseup", handleMouseUp);
+            return () => {
+                window.removeEventListener("mousemove", handleMouseMove);
+                window.removeEventListener("mouseup", handleMouseUp);
+            };
+        }
+    }, [isPanning, handleMouseMove, handleMouseUp]);
 
-        const handleMouseDown = (e: MouseEvent) => {
-            if (e.button === 0) { // Left mouse button
-                setIsPanning(true);
-                setPanStart({ x: e.clientX - transform.x, y: e.clientY - transform.y });
-            }
-        };
+    const getNodeById = useCallback((id: string) => nodes.find(n => n.id === id), []);
 
-        const handleMouseMove = (e: MouseEvent) => {
-            if (isPanning) {
-                setTransform(prev => ({
-                    ...prev,
-                    x: e.clientX - panStart.x,
-                    y: e.clientY - panStart.y,
-                }));
-            }
-        };
-
-        const handleMouseUp = () => {
-            setIsPanning(false);
-        };
-
-        container.addEventListener("mousedown", handleMouseDown);
-        window.addEventListener("mousemove", handleMouseMove);
-        window.addEventListener("mouseup", handleMouseUp);
-
-        return () => {
-            container.removeEventListener("mousedown", handleMouseDown);
-            window.removeEventListener("mousemove", handleMouseMove);
-            window.removeEventListener("mouseup", handleMouseUp);
-        };
-    }, [isPanning, panStart, transform.x, transform.y]);
-
-    const getNodeById = (id: string) => nodes.find(n => n.id === id);
-
-    // Reset zoom button handler
-    const handleResetZoom = () => {
+    const handleResetZoom = useCallback(() => {
         setTransform({ x: 0, y: 0, scale: 1 });
-    };
+    }, []);
+
+    const handleZoomIn = useCallback(() => {
+        setTransform(prev => ({ ...prev, scale: Math.min(prev.scale + 0.2, 3) }));
+    }, []);
+
+    const handleZoomOut = useCallback(() => {
+        setTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.2, 0.3) }));
+    }, []);
+
+    // Memoize edge paths to avoid recalculation
+    const edgePaths = useMemo(() => {
+        return edges.map((edge, i) => {
+            const from = getNodeById(edge.from);
+            const to = getNodeById(edge.to);
+            if (!from || !to) return null;
+
+            const midX = (from.x + to.x) / 2;
+            const midY = (from.y + to.y) / 2;
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const offset = 30;
+            const controlX = midX - dy * offset / Math.sqrt(dx * dx + dy * dy);
+            const controlY = midY + dx * offset / Math.sqrt(dx * dx + dy * dy);
+
+            return {
+                key: `edge-${i}`,
+                path: `M ${from.x} ${from.y} Q ${controlX} ${controlY} ${to.x} ${to.y}`,
+                from: edge.from,
+                to: edge.to,
+                fromNode: from,
+                toNode: to,
+            };
+        }).filter(Boolean);
+    }, [getNodeById]);
 
     return (
         <div 
             ref={containerRef}
-            className="flex flex-1 relative bg-[#0a0a0a] p-6 overflow-hidden"
+            className="flex flex-1 relative bg-[#0a0a0a] p-6 overflow-hidden select-none"
             style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+            onMouseDown={handleMouseDown}
         >
             <svg
                 ref={svgRef}
@@ -162,7 +193,6 @@ export const DashboardGraph = () => {
                 className="w-full h-full"
             >
                 <defs>
-                    {/* Glow filter for highlighted nodes */}
                     <filter id="glow">
                         <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                         <feMerge>
@@ -172,41 +202,26 @@ export const DashboardGraph = () => {
                     </filter>
                 </defs>
 
-                {/* Apply transform to entire graph */}
                 <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
-                    {/* Draw edges with curves */}
                     <g className="edges">
-                        {edges.map((edge, i) => {
-                            const from = getNodeById(edge.from);
-                            const to = getNodeById(edge.to);
-                            if (!from || !to) return null;
-
+                        {edgePaths.map((edge) => {
+                            if (!edge) return null;
                             const isHighlighted = hoveredNode === edge.from || hoveredNode === edge.to;
                             
-                            // Calculate curve control point
-                            const midX = (from.x + to.x) / 2;
-                            const midY = (from.y + to.y) / 2;
-                            const dx = to.x - from.x;
-                            const dy = to.y - from.y;
-                            const offset = 30;
-                            const controlX = midX - dy * offset / Math.sqrt(dx * dx + dy * dy);
-                            const controlY = midY + dx * offset / Math.sqrt(dx * dx + dy * dy);
-
                             return (
                                 <path
-                                    key={`edge-${i}`}
-                                    d={`M ${from.x} ${from.y} Q ${controlX} ${controlY} ${to.x} ${to.y}`}
-                                    stroke={isHighlighted ? getRiskColor(Math.max(from.risk, to.risk)) : "#2a2a2a"}
+                                    key={edge.key}
+                                    d={edge.path}
+                                    stroke={isHighlighted ? getRiskColor(Math.max(edge.fromNode.risk, edge.toNode.risk)) : "#2a2a2a"}
                                     strokeWidth={isHighlighted ? 2.5 : 1.5}
                                     fill="none"
-                                    strokeDasharray={from.type === "root" || to.type === "root" ? "0" : "4 4"}
-                                    className="transition-all duration-300"
+                                    strokeDasharray={edge.fromNode.type === "root" || edge.toNode.type === "root" ? "0" : "4 4"}
+                                    style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
                                 />
                             );
                         })}
                     </g>
 
-                    {/* Draw nodes */}
                     <g className="nodes">
                         {nodes.map((node) => {
                             const isHovered = hoveredNode === node.id;
@@ -221,10 +236,9 @@ export const DashboardGraph = () => {
                                     transform={`translate(${node.x - width / 2}, ${node.y - height / 2})`}
                                     onMouseEnter={() => setHoveredNode(node.id)}
                                     onMouseLeave={() => setHoveredNode(null)}
-                                    className="cursor-pointer"
+                                    style={{ cursor: 'pointer' }}
                                     filter={isHovered ? "url(#glow)" : undefined}
                                 >
-                                    {/* Node background */}
                                     <rect
                                         width={width}
                                         height={height}
@@ -232,10 +246,9 @@ export const DashboardGraph = () => {
                                         fill="#0f0f0f"
                                         stroke={color}
                                         strokeWidth={isHovered ? 2.5 : 1.5}
-                                        className="transition-all duration-300"
+                                        style={{ transition: 'stroke-width 0.2s' }}
                                     />
 
-                                    {/* Color indicator square */}
                                     <rect
                                         x={12}
                                         y={height / 2 - 6}
@@ -245,7 +258,6 @@ export const DashboardGraph = () => {
                                         fill={color}
                                     />
 
-                                    {/* Node label */}
                                     <text
                                         x={32}
                                         y={height / 2 - 4}
@@ -257,19 +269,17 @@ export const DashboardGraph = () => {
                                         {node.label}
                                     </text>
 
-                                    {/* Node subtitle */}
                                     <text
                                         x={32}
                                         y={height / 2 + 12}
                                         fill="#666"
                                         fontSize={10}
                                         fontFamily="monospace"
-                                        textTransform="uppercase"
+                                        style={{ textTransform: 'uppercase' }}
                                     >
                                         {node.subtitle}
                                     </text>
 
-                                    {/* Risk score */}
                                     <text
                                         x={width - 16}
                                         y={height / 2 + 6}
@@ -288,17 +298,16 @@ export const DashboardGraph = () => {
                 </g>
             </svg>
 
-            {/* Zoom controls */}
             <div className="absolute top-6 right-6 flex flex-col gap-2">
                 <button
-                    onClick={() => setTransform(prev => ({ ...prev, scale: Math.min(prev.scale + 0.2, 3) }))}
+                    onClick={handleZoomIn}
                     className="w-8 h-8 bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-gray-700 rounded flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                     title="Zoom In"
                 >
                     +
                 </button>
                 <button
-                    onClick={() => setTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.2, 0.3) }))}
+                    onClick={handleZoomOut}
                     className="w-8 h-8 bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-gray-700 rounded flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                     title="Zoom Out"
                 >
@@ -313,7 +322,6 @@ export const DashboardGraph = () => {
                 </button>
             </div>
 
-            {/* Legend */}
             <div className="absolute bottom-6 left-6 flex items-center gap-6 text-xs font-mono">
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-sm bg-[#4ade80]" />
@@ -333,7 +341,6 @@ export const DashboardGraph = () => {
                 </div>
             </div>
 
-            {/* Stats */}
             <div className="absolute bottom-6 right-6 text-xs font-mono text-gray-500">
                 <span>{nodes.length} nodes · {edges.length} edges · zoom: {(transform.scale * 100).toFixed(0)}%</span>
             </div>
