@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import graphRouter from './routes/graph.router';
+import aiRouter from './routes/ai.router';
 import { errorMiddleware } from './middleware/error.middleware';
 import {
     RATE_LIMIT_MAX_REQUESTS,
@@ -24,7 +25,7 @@ app.use(helmet());
 app.use(cors({
         origin: "*"
     }));
-app.use(express.json({ limit: '32kb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(
     rateLimit({
         windowMs: RATE_LIMIT_WINDOW_MS,
@@ -37,6 +38,7 @@ app.use(
 /* ==================== Routes ==================== */
 
 app.use('/api', graphRouter);
+app.use('/api', aiRouter);
 
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });

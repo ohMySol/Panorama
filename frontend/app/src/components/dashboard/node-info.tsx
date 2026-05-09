@@ -18,9 +18,12 @@ export const NodeInfo = () => {
 
     const shortAddress = `${selectedNode.address.slice(0, 6)}…${selectedNode.address.slice(-4)}`;
 
+    // Check if this is the root node
+    const isRoot = graphData?.root === selectedNode.address;
+    
     // Find incoming edge for this node to determine display name
     const incomingEdge = graphData?.edges.find(edge => edge.to === selectedNode.address);
-    const displayName = getNodeDisplayName(selectedNode, incomingEdge);
+    const displayName = getNodeDisplayName(selectedNode, incomingEdge, isRoot);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(selectedNode.address);

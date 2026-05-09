@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import type { GraphResponse, GraphNode, GraphEdge } from "@risk-terminal/shared";
+import { getNodeDisplayName, getNodeSubtitle } from "@/lib/utils/node-display";
 
 interface TreeNode {
     id: string;
     name: string;
-    type: string;
+    subtitle: string;
     children?: TreeNode[];
 }
 
@@ -34,11 +35,9 @@ const TreeItem = ({ node, level = 0 }: { node: TreeNode; level?: number }) => {
                     )}
                     
                     <span className="text-[14px] text-gray-300 font-mono truncate max-w-[180px]">
-                        {node.name}
+                        {node.name} <span className="text-gray-500">{node.subtitle}</span>
                     </span>
                 </div>
-                
-                <span className="text-[11px] text-gray-500 uppercase font-mono">{node.type}</span>
             </div>
             
             {hasChildren && isExpanded && (
@@ -76,6 +75,16 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
             const graphNode = nodeMap.get(address);
             if (!graphNode) return null;
 
+            // Check if this is the root node
+            const isRoot = address === data.root;
+            
+            // Find incoming edge for this node
+            const incomingEdge = data.edges.find(edge => edge.to === address);
+            
+            // Use utility functions to get display name and subtitle
+            const displayName = getNodeDisplayName(graphNode, incomingEdge, isRoot);
+            const subtitle = getNodeSubtitle(graphNode, incomingEdge, isRoot);
+
             const children: TreeNode[] = [];
             const childAddresses = childrenMap.get(address) || [];
             
@@ -88,8 +97,8 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
 
             return {
                 id: graphNode.address,
-                name: graphNode.name || `${graphNode.address.slice(0, 6)}...${graphNode.address.slice(-4)}`,
-                type: graphNode.type.toUpperCase(),
+                name: displayName,
+                subtitle: subtitle,
                 children: children.length > 0 ? children : undefined,
             };
         };

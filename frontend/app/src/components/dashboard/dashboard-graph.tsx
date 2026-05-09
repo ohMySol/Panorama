@@ -81,8 +81,8 @@ export const DashboardGraph = () => {
             const incomingEdge = graphData.edges.find(edge => edge.to === node.address);
             
             // Use utility functions to get display name and subtitle
-            const label = getNodeDisplayName(node, incomingEdge);
-            const subtitle = getNodeSubtitle(node, incomingEdge);
+            const label = getNodeDisplayName(node, incomingEdge, isRoot);
+            const subtitle = getNodeSubtitle(node, incomingEdge, isRoot);
             
             return {
                 id: node.address,

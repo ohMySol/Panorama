@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@risk-terminal/shared": ["../packages/shared/src"]
     }
   },
   "include": [

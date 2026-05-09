@@ -1,15 +1,41 @@
 "use client"
 
 import { useSelectedNode } from "@/lib/context/selected-node.context";
+import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
+import { useAiSummary } from "@/lib/hooks/useAiSummary";
 
 export const Metadata = () => {
     const { selectedNode } = useSelectedNode();
+    const { data: graphData } = useLatestGraphAnalysis();
+    const { data: aiSummary, isLoading: isLoadingSummary, error: summaryError } = useAiSummary(
+        graphData,
+        !selectedNode && !!graphData
+    );
 
     if (!selectedNode) {
         return (
             <div className="flex flex-col gap-3 py-4 px-5 border-b border-b-gray-500">
-                <h5 className="text-[15px] font-display text-[#C8FF3E]">METADATA</h5>
-                <p className="text-gray-500 text-sm">No node selected</p>
+                <h5 className="text-[15px] font-display text-[#C8FF3E]">PROTOCOL SUMMARY</h5>
+                {!graphData ? (
+                    <p className="text-gray-500 text-sm">No graph data available</p>
+                ) : isLoadingSummary ? (
+                    <div className="flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-[#C8FF3E] border-t-transparent rounded-full"></div>
+                        <p className="text-gray-400 text-sm">Generating AI summary...</p>
+                    </div>
+                ) : summaryError ? (
+                    <p className="text-gray-500 text-sm">Unable to generate summary</p>
+                ) : aiSummary ? (
+                    <div className="flex flex-col gap-3">
+                        <p className="text-gray-300 text-[13px] leading-relaxed whitespace-pre-wrap">{aiSummary}</p>
+                        <div className="flex items-center gap-1 text-[10px] text-gray-500 pt-1">
+                            <span className="inline-block w-2 h-2 bg-[#C8FF3E] rounded-full animate-pulse"></span>
+                            <span>AI-generated analysis</span>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-gray-500 text-sm">No summary available</p>
+                )}
             </div>
         );
     }

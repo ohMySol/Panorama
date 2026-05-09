@@ -36,6 +36,9 @@ export const DEFILLAMA_BASE_URL: string = 'https://api.llama.fi';
 export const ETHERSCAN_API_KEY: string = process.env.ETHERSCAN_API_KEY ?? '';
 export const ETHEREUM_RPC_URL: string =
     process.env.ETHEREUM_RPC_URL ?? 'https://ethereum-rpc.publicnode.com';
+export const GROQ_API_KEY: string = process.env.GROQ_API_KEY ?? '';
+export const XAI_API_KEY: string = process.env.XAI_API_KEY ?? '';
+export const HUGGINGFACE_API_KEY: string = process.env.HUGGINGFACE_API_KEY ?? '';
 
 /* ==================== Limits & Timeouts ==================== */
 

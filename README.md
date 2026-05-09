@@ -25,6 +25,7 @@ Panorama walks the dependency graph from any smart contract entry point down thr
 - 🌳 **Dependency Tree View** - Hierarchical tree structure showing parent-child relationships
 - 📈 **Real-time Analysis** - Instant contract analysis with live data from Ethereum mainnet
 - 🔍 **Detailed Metadata** - Contract tier, source availability, and TVL
+- 🤖 **AI Protocol Summaries** - Automatic protocol analysis when no node is selected
 - 🎯 **Interactive Nodes** - Click any node to view detailed information
 - 🖱️ **Draggable Graph** - Move nodes around to customize your view
 - 🔎 **Zoom & Pan** - Navigate large dependency graphs with ease
@@ -156,7 +157,14 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 ```env
 PORT=5000
 ETHERSCAN_API_KEY=your_api_key_here
+# Optional: AI-powered protocol summaries (free!)
+HUGGINGFACE_API_KEY=your_huggingface_token_here
 ```
+
+**Get Hugging Face API Key (Free):**
+1. Go to [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+2. Create a new token (read access is enough)
+3. Copy and paste into `.env` file
 
 ## 📚 API Documentation
 

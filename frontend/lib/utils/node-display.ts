@@ -5,10 +5,27 @@ import type { GraphNode, GraphEdge } from "@risk-terminal/shared";
  */
 export function getNodeDisplayName(
     node: GraphNode,
-    incomingEdge: GraphEdge | undefined
+    incomingEdge: GraphEdge | undefined,
+    isRoot: boolean = false
 ): string {
     const shortAddress = `${node.address.slice(0, 6)}...${node.address.slice(-4)}`;
     let label = node.name || shortAddress;
+
+    // Special handling for root node
+    if (isRoot) {
+        // For root: show "type + category" as label
+        const typeLabel = node.type.toUpperCase();
+        const categoryLabel = node.category ? ` ${node.category}` : '';
+        return `${typeLabel}${categoryLabel}`;
+    }
+
+    // Special handling for morphoBlue type
+    if (node.type === "morphoBlue") {
+        // For morphoBlue: show "name + category" as label
+        const nameLabel = node.name || shortAddress;
+        const categoryLabel = node.category ? ` ${node.category}` : '';
+        return `${nameLabel}${categoryLabel}`;
+    }
 
     if (node.type === "erc20") {
         // For ERC20 tokens, show symbol as label
@@ -33,10 +50,23 @@ export function getNodeDisplayName(
  */
 export function getNodeSubtitle(
     node: GraphNode,
-    incomingEdge: GraphEdge | undefined
+    incomingEdge: GraphEdge | undefined,
+    isRoot: boolean = false
 ): string {
     const shortAddress = `${node.address.slice(0, 6)}...${node.address.slice(-4)}`;
     let subtitle = node.type.toUpperCase();
+
+    // Special handling for root node
+    if (isRoot) {
+        // For root: show name as subtitle
+        return node.name || shortAddress;
+    }
+
+    // Special handling for morphoBlue type
+    if (node.type === "morphoBlue") {
+        // For morphoBlue: show "morphoBlue" as subtitle
+        return "morphoBlue";
+    }
 
     if (node.type === "erc20") {
         // For ERC20 tokens, show edge type as subtitle
