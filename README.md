@@ -12,7 +12,7 @@
 Panorama is a smart contract dependency analyzer that visualizes the entire dependency graph of Ethereum contracts.
 </p>
 
-![Panorama Hero](docs/screenshots/hero.png)
+![Panorama Home Page](img/home_page.jpg)
 
 ## 🎯 What is Panorama?
 
