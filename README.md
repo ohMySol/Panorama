@@ -23,12 +23,10 @@ Panorama walks the dependency graph from any smart contract entry point down thr
 - 🔗 **Dependency Graph Visualization** - Interactive hierarchical graph showing all contract dependencies
 - 🎨 **Type-Based Visualization** - Visual indicators for different contract types
 - 🌳 **Dependency Tree View** - Hierarchical tree structure showing parent-child relationships
-- 📈 **Real-time Analysis** - Instant contract analysis with live data from Ethereum mainnet
-- 🔍 **Detailed Metadata** - Contract tier, source availability, and TVL
-- 🤖 **AI Protocol Summaries** - Automatic protocol analysis when no node is selected
+- 🔍 **Detailed Metadata** - Contract tier, source availability
 - 🎯 **Interactive Nodes** - Click any node to view detailed information
 - 🖱️ **Draggable Graph** - Move nodes around to customize your view
-- 🔎 **Zoom & Pan** - Navigate large dependency graphs with ease
+- 🤖 **AI Protocol Summaries** - Automatic protocol analysis when no node is selected
 
 ![Panorama Dashboard](docs/screenshots/dashboard.png)
 
@@ -47,7 +45,6 @@ Panorama walks the dependency graph from any smart contract entry point down thr
 - **Viem** - Lightweight Ethereum library
 - **Etherscan API** - Contract verification and source code
 - **Sourcify API** - Decentralized contract verification
-- **DeFiLlama API** - TVL and protocol data
 
 ### Infrastructure
 - **Docker** - Containerized deployment
@@ -94,11 +91,6 @@ npm run dev
 4. **Inspect Nodes** - Click on any node to see detailed information
 5. **Navigate** - Use zoom controls and drag nodes to customize your view
 
-### Example Contracts to Try
-
-```
-0xA1D94F746dEfa1928926b84fB2596c06926C0405
-```
 
 ## 🛠️ Development
 
@@ -189,26 +181,9 @@ HUGGINGFACE_API_KEY=your_huggingface_token_here
 }
 ```
 
-## 📖 Documentation
-
-- [Features](docs/FEATURES.md) - Detailed feature list
-- [FAQ](docs/FAQ.md) - Frequently asked questions
-- [Docker Setup](DOCKER.md) - Docker deployment guide
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the ISC License.
-
-## 🙏 Acknowledgments
-
-- Etherscan for contract verification data
-- Sourcify for decentralized verification
-- DeFiLlama for TVL and protocol data
-- The Ethereum community
 
 ---
 
