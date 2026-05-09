@@ -1,7 +1,14 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { ScanInput } from "./scan-input"
 
 export const Header = () => {
+    const pathname = usePathname();
+    const isDashboard = pathname?.startsWith('/dashboard/');
+
     return (
         <header className="flex items-center justify-between py-6 px-20">
             <Link href="/">
@@ -10,6 +17,7 @@ export const Header = () => {
                     <h3 className="text-[22px] font-display">PANORAMA</h3>
                 </div>
             </Link>
+            {isDashboard && <ScanInput />}
         </header>
     )
 }

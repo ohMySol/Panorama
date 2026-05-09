@@ -14,6 +14,16 @@ export interface ValidationResult {
 const ETH_ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
 
 /**
+ * Simple address validation (returns boolean)
+ * 
+ * @param address - The address to validate
+ * @returns true if valid, false otherwise
+ */
+export function validateAddress(address: string): boolean {
+  return ETH_ADDRESS_REGEX.test(address);
+}
+
+/**
  * Validates Ethereum address format (0x + 40 hex characters)
  * 
  * @param address - The address to validate

@@ -35,8 +35,13 @@ export const ScanInput = () => {
                 depth: API_CONFIG.DEFAULT_DEPTH,
             },
             {
-                onSuccess: () => {
-                    router.push("/dashboard");
+                onSuccess: (data) => {
+                    // Check if graph has more than 1 node (has dependencies)
+                    if (data.nodes.length <= 1) {
+                        setError("No dependencies found for this contract. The contract has no external dependencies to analyze.");
+                        return;
+                    }
+                    router.push(`/dashboard/${address}`);
                 },
                 onError: (err) => {
                     setError(err.message || "Failed to analyze contract");
@@ -58,6 +63,11 @@ export const ScanInput = () => {
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !mutation.isPending && address) {
+                            handleSubmit();
+                        }
+                    }}
                     disabled={mutation.isPending}
                 />
                 <button

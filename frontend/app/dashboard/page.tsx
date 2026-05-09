@@ -2,46 +2,18 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardGraph } from "../src/components/dashboard/dashboard-graph";
-import { LeftTab } from "../src/components/dashboard/left-tab";
-import { RightTab } from "../src/components/dashboard/right-tab";
-import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
-import { SelectedNodeProvider } from "@/lib/context/selected-node.context";
 
-export default function DashboardPage() {
-  const { data, isLoading, error } = useLatestGraphAnalysis();
+export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to home if no data available
-    if (!isLoading && !data) {
-      router.push("/");
-    }
-  }, [data, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen items-center justify-center">
-        <div className="text-red-500">Error: {error.message}</div>
-      </div>
-    );
-  }
+    // Redirect to home if accessing /dashboard without address
+    router.push("/");
+  }, [router]);
 
   return (
-    <SelectedNodeProvider>
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen">
-        <LeftTab />
-        <DashboardGraph />
-        <RightTab />
-      </div>
-    </SelectedNodeProvider>
+    <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen items-center justify-center">
+      <div className="text-white">Redirecting...</div>
+    </div>
   );
 }
