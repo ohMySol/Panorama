@@ -22,16 +22,17 @@ const TreeItem = ({ node, level = 0 }: { node: TreeNode; level?: number }) => {
     return (
         <div>
             <div 
-                className={`flex items-center justify-between py-1 cursor-pointer transition-colors `}
+                className={`flex items-center justify-between py-1 ${hasChildren ? 'cursor-pointer' : ''} transition-colors `}
                 style={{ paddingLeft: `${level * 24 + 12}px` }}
                 onClick={() => hasChildren && setIsExpanded(!isExpanded)}
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-[3px] bg-[#C8FF3E]" /> 
-                    {hasChildren && (
-                        <span className="text-gray-500 text-xs">
-                            {isExpanded ? "└" : "├"}
-                        </span>
+                    {hasChildren ? (
+                        <div className="w-3 h-3 flex items-center justify-center text-[#C8FF3E] text-xs font-bold">
+                            {isExpanded ? '▼' : '▶'}
+                        </div>
+                    ) : (
+                        <div className="w-3 h-3 rounded-[3px] bg-[#C8FF3E]" />
                     )}
                     
                     <span className="text-[14px] text-gray-300 font-mono truncate max-w-[180px]">
