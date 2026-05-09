@@ -58,7 +58,8 @@ export const DashboardGraph = () => {
             const levelHeight = 300;
             const y = 100 + level * levelHeight;
             
-            const spreadWidth = 1200;
+            const minSpacing = 250;
+            const spreadWidth = Math.max(1200, minSpacing * totalSiblings);
             const x = parentX + (siblingIndex - (totalSiblings - 1) / 2) * (spreadWidth / Math.max(totalSiblings, 1));
 
             calculatedPositions.set(address, { x, y, level });
