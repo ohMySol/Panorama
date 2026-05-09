@@ -3,6 +3,7 @@ import { getAbiFunctionNames } from '../router.service';
 import erc20 from './protocols/erc20.json';
 import morphoV1 from './protocols/morpho-vault-v1.json';
 import morphoV2 from './protocols/morpho-vault-v2.json';
+import safeMultisig from './protocols/safe-multisig.json';
 import type { ProtocolManifest } from './types';
 
 /**
@@ -13,6 +14,7 @@ import type { ProtocolManifest } from './types';
 const MANIFESTS: readonly ProtocolManifest[] = [
     morphoV1 as ProtocolManifest,
     morphoV2 as ProtocolManifest,
+    safeMultisig as ProtocolManifest,
     erc20 as ProtocolManifest,
 ];
 
@@ -29,4 +31,9 @@ export function selectManifest(abi: AbiItem[]): ProtocolManifest | null {
 }
 
 export { executeManifest } from './executor';
-export type { AdapterDependency, AdapterKind, ProtocolManifest } from './types';
+export type {
+    AdapterDependency,
+    AdapterKind,
+    ManifestResult,
+    ProtocolManifest,
+} from './types';

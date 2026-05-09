@@ -46,14 +46,16 @@ export interface MultisigMetadata {
  * @param riskFlags - The risk points associated with the node (e.g., ["upgradeable", "RBAC", "timelocks"]).
  * @param tvlUsd - The total value locked in USD for the node (if applicable) from DeFiLlama.
  * @param type - The type of the node in the graph (e.g., "oracle", "token", "pool", etc.).
- * @param metadata - Additional metadata specific to the contract type (e.g., ERC20 or Multisig data).
+ * @param metadata - Manifest-extracted, render-ready facts (e.g. token `symbol`, multisig
+ *   `signerCount` / `signerThreshold`). Keyed strings come straight from the manifest's
+ *   `metadataCalls[].field`; consumers should treat unknown keys as optional.
  */
 export interface GraphNode  extends ResolvedDependency {
     riskScore: number;
     riskFlags: string[];
     tvlUsd: number | null;
     type: string;
-    metadata?: ERC20Metadata | MultisigMetadata | Record<string, any>;
+    metadata: Record<string, string | number | boolean>;
 }
 
 /**

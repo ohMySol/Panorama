@@ -4,7 +4,7 @@ import type { Abi } from 'viem';
  * Stable string identifying a protocol family. Used by the risk profile registry
  * (`risk/index.ts`) and surfaced on `GraphNode.type`.
  */
-export type AdapterKind = 'morpho' | 'morphoV2' | 'erc20' | 'fallback';
+export type AdapterKind = 'morpho' | 'morphoV2' | 'erc20' | 'safe' | 'fallback';
 
 /**
  * One outbound edge a manifest discovered for a contract.
@@ -44,6 +44,13 @@ export interface ProtocolManifest {
     fingerprint: string[];
     directCalls?: DirectCall[];
     paginatedCalls?: PaginatedCall[];
+    /**
+     * Render-only contract facts (symbols, signer counts, thresholds, …).
+     * Run on the contract being analysed alongside the direct calls; never
+     * produce edges. Each call's result is projected and stored at
+     * `GraphNode.metadata[field]`.
+     */
+    metadataCalls?: MetadataCall[];
 }
 
 /**
@@ -90,4 +97,32 @@ export interface FollowUp {
     function: Abi[number];
     extract: { index: number; role: string }[];
     anchorFromTarget: boolean;
+}
+
+/**
+ * One render-only fact extracted from the contract being analysed.
+ *
+ * The function must exist in the resolved ABI (same security guarantee as
+ * direct calls). The decoded return value is projected and stored at
+ * `GraphNode.metadata[field]`:
+ *   - `length`   — `value.length` (use for `address[]` getters like `getOwners`)
+ *   - default    — bigint coerced to number; string / boolean / number kept as-is
+ *
+ * @param function - View function on the resolved contract.
+ * @param field    - Key under `GraphNode.metadata` for the projected value.
+ * @param project  - Optional projection applied to the decoded result.
+ */
+export interface MetadataCall {
+    function: string;
+    field: string;
+    project?: 'length';
+}
+
+/**
+ * Output of `executeManifest`. `dependencies` drives BFS traversal; `metadata`
+ * is attached to the node and surfaced to the frontend.
+ */
+export interface ManifestResult {
+    dependencies: AdapterDependency[];
+    metadata: Record<string, string | number | boolean>;
 }
