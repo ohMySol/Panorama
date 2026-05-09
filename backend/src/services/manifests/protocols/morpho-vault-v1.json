@@ -6,8 +6,8 @@
         { "function": "curator",  "role": "curator"      },
         { "function": "guardian", "role": "guardian"     },
         { "function": "owner",    "role": "owner"        },
-        { "function": "MORPHO",   "role": "protocolCore" },
-        { "function": "asset",    "role": "loanToken"    }
+        { "function": "asset",    "role": "loanToken"    },
+        { "function": "MORPHO",   "role": "protocolCore" }
     ],
     "paginatedCalls": [
         {
