@@ -1,9 +1,12 @@
 "use client"
 
 import { useSelectedNode } from "@/lib/context/selected-node.context";
+import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
+import { getNodeDisplayName } from "@/lib/utils/node-display";
 
 export const NodeInfo = () => {
     const { selectedNode } = useSelectedNode();
+    const { data: graphData } = useLatestGraphAnalysis();
 
     if (!selectedNode) {
         return (
@@ -15,10 +18,9 @@ export const NodeInfo = () => {
 
     const shortAddress = `${selectedNode.address.slice(0, 6)}…${selectedNode.address.slice(-4)}`;
 
-    // For ERC20 tokens, prefer symbol from metadata
-    const displayName = selectedNode.type === "erc20" && selectedNode.metadata?.symbol
-        ? String(selectedNode.metadata.symbol)
-        : selectedNode.name || shortAddress;
+    // Find incoming edge for this node to determine display name
+    const incomingEdge = graphData?.edges.find(edge => edge.to === selectedNode.address);
+    const displayName = getNodeDisplayName(selectedNode, incomingEdge);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(selectedNode.address);
