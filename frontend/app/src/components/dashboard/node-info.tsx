@@ -15,6 +15,11 @@ export const NodeInfo = () => {
 
     const shortAddress = `${selectedNode.address.slice(0, 6)}…${selectedNode.address.slice(-4)}`;
 
+    // For ERC20 tokens, prefer symbol from metadata
+    const displayName = selectedNode.type === "erc20" && selectedNode.metadata?.symbol
+        ? String(selectedNode.metadata.symbol)
+        : selectedNode.name || shortAddress;
+
     const handleCopy = () => {
         navigator.clipboard.writeText(selectedNode.address);
     };
@@ -27,7 +32,7 @@ export const NodeInfo = () => {
         <div className="flex flex-col px-5 pb-5 border-b border-b-gray-400">
             <div className="flex items-center justify-between w-full ">
                 <h3 className="text-[22px] font-display leading-[32px]">
-                    {selectedNode.name || shortAddress}
+                    {displayName}
                 </h3>
                 <div className="text-[#C8FF3E] text-[12px] leading-3 border border-[#C8FF3E] px-3 py-1.5 uppercase">
                     {selectedNode.type}

@@ -76,10 +76,38 @@ export const DashboardGraph = () => {
             const pos = calculatedPositions.get(node.address) || { x: 600, y: 400, level: 0 };
             const isRoot = node.address === graphData.root;
             
+            // Custom display logic for specific node types
+            let label = node.name || `${node.address.slice(0, 6)}...${node.address.slice(-4)}`;
+            let subtitle = node.type.toUpperCase();
+            
+            // Find incoming edge for this node
+            const incomingEdge = graphData.edges.find(edge => edge.to === node.address);
+            
+            if (node.type === "erc20") {
+                // For ERC20 tokens, show symbol as label and edge type as subtitle
+                if (node.metadata?.symbol) {
+                    label = String(node.metadata.symbol);
+                }
+                if (incomingEdge) {
+                    subtitle = incomingEdge.type;
+                }
+            } else if (node.type === "safe") {
+                // For Safe multisig, show edge type as label and "Multisig" as subtitle
+                if (incomingEdge) {
+                    // Capitalize first letter of edge type
+                    label = incomingEdge.type.charAt(0).toUpperCase() + incomingEdge.type.slice(1);
+                }
+                subtitle = "Multisig";
+            } else if (incomingEdge?.type === "oracle") {
+                // For oracle edges, show "Oracle" as label and node name as subtitle
+                label = "Oracle";
+                subtitle = node.name || `${node.address.slice(0, 6)}...${node.address.slice(-4)}`;
+            }
+            
             return {
                 id: node.address,
-                label: node.name || `${node.address.slice(0, 6)}...${node.address.slice(-4)}`,
-                subtitle: node.type.toUpperCase(),
+                label,
+                subtitle,
                 type: isRoot ? "root" : node.type,
                 risk: node.riskScore,
                 x: pos.x,
