@@ -4,8 +4,8 @@ import { resolveContract } from './resolver.service';
 import {
     executeManifest,
     selectManifest,
-    type AdapterDependency,
     type AdapterKind,
+    type ManifestResult,
 } from './manifests';
 import { runRiskChecks } from './risk';
 import { scoreGraph, scoreNode } from './scorer.service';
@@ -65,11 +65,19 @@ export async function buildDependencyGraph(
         const manifest = resolved.abi ? selectManifest(resolved.abi) : null;
         const adapterKind: AdapterKind = manifest?.id ?? 'fallback';
 
-        // 3. Run the manifest executor to discover dependencies of the current contract.
-        let dependencies: AdapterDependency[] = [];
-        if (manifest && resolved.abi && depth < maxDepth) {
+        // 3. Run the manifest executor. Metadata (token symbols, multisig
+        //    signer counts, …) is collected even when we're at maxDepth so
+        //    leaf nodes still render with friendly labels.
+        let result: ManifestResult = { dependencies: [], metadata: {} };
+        if (manifest && resolved.abi) {
             try {
-                dependencies = await executeManifest(manifest, resolved.address, resolved.abi, chainId);
+                result = await executeManifest(
+                    manifest,
+                    resolved.address,
+                    resolved.abi,
+                    chainId,
+                    depth < maxDepth,
+                );
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'unknown error';
                 console.warn(`[graph] manifest ${adapterKind} failed for ${address}: ${message}`);
@@ -90,13 +98,14 @@ export async function buildDependencyGraph(
             riskFlags: findings.map((f) => f.label),
             tvlUsd: null,
             type: adapterKind,
+            metadata: result.metadata,
         };
         nodesByAddress.set(resolved.address.toLowerCase(), node);
 
         // 5. Store node, push edges, enqueue dependencies. Honour `dep.from` so
         //    that adapter-anchored edges (e.g. Morpho markets owned by Morpho
         //    Blue, not the vault that referenced them) are attributed correctly.
-        for (const dep of dependencies) {
+        for (const dep of result.dependencies) {
             const edgeFrom = dep.from ?? resolved.address;
             edges.push({ from: edgeFrom, to: dep.to, type: dep.type });
 

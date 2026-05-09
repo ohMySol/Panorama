@@ -52,6 +52,28 @@ export async function fetchBytecode(address: string, chainId: number): Promise<s
 }
 
 /**
+ * Reads a single 32-byte storage slot via `eth_getStorageAt`. Used to detect
+ * proxies by their well-known implementation slots (EIP-1967, Safe master copy)
+ * without relying on getter functions, which can revert (transparent proxies)
+ * or be missing from the proxy's ABI (Safe).
+ *
+ * @returns The 32-byte hex word at the slot, or `null` on RPC error.
+ */
+export async function readStorageAt(
+    address: string,
+    slot: `0x${string}`,
+    chainId: number = mainnet.id,
+): Promise<`0x${string}` | null> {
+    const client = getRpcClient(chainId);
+    try {
+        const raw = await client.getStorageAt({ address: toAddress(address), slot });
+        return raw ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Reads a single contract function via `eth_call`.
  *
  * @param address - Target contract address.

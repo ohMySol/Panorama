@@ -1,0 +1,9 @@
+{
+    "id": "safe",
+    "fingerprint": ["getOwners", "getThreshold", "isOwner"],
+    "metadataCalls": [
+        { "function": "getOwners",    "field": "signerCount",     "project": "length" },
+        { "function": "getThreshold", "field": "signerThreshold"                       },
+        { "function": "nonce",        "field": "nonce"                                 }
+    ]
+}

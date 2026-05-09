@@ -5,6 +5,8 @@ import type {
     AdapterDependency,
     DirectCall,
     FollowUp,
+    ManifestResult,
+    MetadataCall,
     PaginatedCall,
     ProtocolManifest,
 } from './types';
@@ -16,31 +18,38 @@ type Multicall = Parameters<typeof multicall>[0];
 type MulticallResult = Awaited<ReturnType<typeof multicall>>[number];
 
 /**
- * Generic, manifest-driven dependency discovery. Replaces per-protocol adapters
- * with a single executor that interprets a `ProtocolManifest`.
+ * Generic, manifest-driven discovery. Replaces per-protocol adapters with a
+ * single executor that interprets a `ProtocolManifest`.
  *
- * Workflow:
- *   1. Every direct getter and paginated length getter on the contract,
- *   batched into a single multicall.
- *   2. Every paginated item getter (one per index, per source), batched.
- *   3. Every cross-contract `followUp` lookup keyed by unique item ID, batched.
+ * Workflow when `discoverDependencies = true`:
+ *   Round 1 — direct getters + paginated length getters + metadata getters,
+ *             batched into a single multicall.
+ *   Round 2 — paginated item getters (one per index, per source), batched.
+ *   Round 3 — cross-contract `followUp` lookups keyed by unique item ID.
+ *
+ * Workflow when `discoverDependencies = false` (e.g. nodes at `maxDepth`):
+ *   Round 1 only, restricted to metadata getters. No edges are emitted, but
+ *   the node still receives its render-ready `metadata` (symbols, signer
+ *   counts, …) so leaves are not blank in the UI.
  *
  * Security boundary: every function name in the manifest is validated against
  * the resolved ABI before any call is issued. A function the resolver does not
- * report is silently dropped, so a stale manifest cannot trigger calls into
+ * report is silently dropped — a stale manifest cannot trigger calls into
  * functions the contract does not expose.
- * 
- * @param manifest - Ordered registry with per protocol instructions.  
- * @param address - Address of the contract
- * @param abi - Resolved ABI of the contract
- * @param cahinId - Chain id
+ *
+ * @param manifest - The matched protocol manifest.
+ * @param address  - Address of the contract being analysed.
+ * @param abi      - Resolved ABI of the contract.
+ * @param chainId  - Chain to operate on.
+ * @param discoverDependencies - When false, skip edge discovery; metadata only.
  */
 export async function executeManifest(
     manifest: ProtocolManifest,
     address: string,
     abi: AbiItem[],
     chainId: number,
-): Promise<AdapterDependency[]> {
+    discoverDependencies = true,
+): Promise<ManifestResult> {
     const abiByName = new Map<string, AbiItem>();
     for (const item of abi) {
         if (item.type === 'function' && item.name && !abiByName.has(item.name)) {
@@ -48,31 +57,41 @@ export async function executeManifest(
         }
     }
 
-    const directs = (manifest.directCalls ?? [])
-        .map((dc) => ({ dc, sig: abiByName.get(dc.function) }))
-        .filter((x): x is { dc: DirectCall; sig: AbiItem } => Boolean(x.sig));
+    const directs = discoverDependencies
+        ? (manifest.directCalls ?? [])
+              .map((dc) => ({ dc, sig: abiByName.get(dc.function) }))
+              .filter((x): x is { dc: DirectCall; sig: AbiItem } => Boolean(x.sig))
+        : [];
 
-    const paginated = (manifest.paginatedCalls ?? []).map((pc) => ({
-        pc,
-        sources: pc.sources
-            .map((s) => ({
-                lenSig: abiByName.get(s.lengthFunction),
-                itemSig: abiByName.get(s.itemFunction),
-            }))
-            .filter(
-                (s): s is { lenSig: AbiItem; itemSig: AbiItem } =>
-                    Boolean(s.lenSig && s.itemSig),
-            ),
-    }));
+    const paginated = discoverDependencies
+        ? (manifest.paginatedCalls ?? []).map((pc) => ({
+              pc,
+              sources: pc.sources
+                  .map((s) => ({
+                      lenSig: abiByName.get(s.lengthFunction),
+                      itemSig: abiByName.get(s.itemFunction),
+                  }))
+                  .filter(
+                      (s): s is { lenSig: AbiItem; itemSig: AbiItem } =>
+                          Boolean(s.lenSig && s.itemSig),
+                  ),
+          }))
+        : [];
 
-    // Round 1 — direct getters + every paginated source's length getter.
+    const metadatas = (manifest.metadataCalls ?? [])
+        .map((mc) => ({ mc, sig: abiByName.get(mc.function) }))
+        .filter((x): x is { mc: MetadataCall; sig: AbiItem } => Boolean(x.sig));
+
+    // Round 1 — direct getters + paginated length getters + metadata getters.
     const round1: Multicall = [
         ...directs.map(({ sig }) => mkCall(address, sig)),
         ...paginated.flatMap(({ sources }) => sources.map((s) => mkCall(address, s.lenSig))),
+        ...metadatas.map(({ sig }) => mkCall(address, sig)),
     ];
     const r1 = round1.length ? await multicall(round1, chainId) : [];
 
     const dependencies: AdapterDependency[] = [];
+    const metadata: Record<string, string | number | boolean> = {};
     const roleToAddress = new Map<string, string>();
 
     let cursor = 0;
@@ -96,10 +115,17 @@ export async function executeManifest(
         return { pc, calls };
     });
 
+    for (const { mc } of metadatas) {
+        const v = unwrap(r1[cursor++]);
+        const projected = project(v, mc.project);
+        if (projected !== undefined) metadata[mc.field] = projected;
+    }
+
+    if (!discoverDependencies) return { dependencies, metadata };
+
     const round2 = round2Plan.flatMap((p) => p.calls);
     const r2 = round2.length ? await multicall(round2, chainId) : [];
 
-    // Bucket Round-2 results back into their owning paginated config.
     let r2Cursor = 0;
     const followUpJobs: { fu: FollowUp; target: string; ids: string[] }[] = [];
     for (const { pc, calls } of round2Plan) {
@@ -153,7 +179,7 @@ export async function executeManifest(
         }
     }
 
-    return dedupe(dependencies);
+    return { dependencies: dedupe(dependencies), metadata };
 }
 
 function mkCall(address: string, sig: AbiItem, args: readonly unknown[] = []): Multicall[number] {
@@ -166,6 +192,20 @@ function unwrap(r: MulticallResult | undefined): unknown {
 
 function isAddress(v: unknown): v is string {
     return typeof v === 'string' && ADDRESS_RE.test(v) && v.toLowerCase() !== ZERO_ADDRESS;
+}
+
+function project(value: unknown, projection: MetadataCall['project']): string | number | boolean | undefined {
+    if (projection === 'length') {
+        return Array.isArray(value) ? value.length : undefined;
+    }
+    if (typeof value === 'bigint') {
+        // Coerce within JS-safe range; out-of-range values are dropped to avoid silent truncation.
+        return value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : undefined;
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return value;
+    }
+    return undefined;
 }
 
 function dedupe(deps: AdapterDependency[]): AdapterDependency[] {
