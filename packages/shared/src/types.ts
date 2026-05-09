@@ -24,17 +24,36 @@ export interface ResolvedDependency {
 }
 
 /**
+ * Metadata for ERC20 tokens
+ */
+export interface ERC20Metadata {
+    symbol: string;
+    decimals: number;
+    totalSupply?: string;
+}
+
+/**
+ * Metadata for Multisig contracts
+ */
+export interface MultisigMetadata {
+    owners: string[];
+    threshold: number;
+}
+
+/**
  * Represents a node in the dependency graph, which extends the ResolvedDependency with additional information.
  * @param riskScore - The risk score of the node (0-100 per node).
  * @param riskFlags - The risk points associated with the node (e.g., ["upgradeable", "RBAC", "timelocks"]).
  * @param tvlUsd - The total value locked in USD for the node (if applicable) from DeFiLlama.
  * @param type - The type of the node in the graph (e.g., "oracle", "token", "pool", etc.).
+ * @param metadata - Additional metadata specific to the contract type (e.g., ERC20 or Multisig data).
  */
 export interface GraphNode  extends ResolvedDependency {
     riskScore: number;
     riskFlags: string[];
     tvlUsd: number | null;
     type: string;
+    metadata?: ERC20Metadata | MultisigMetadata | Record<string, any>;
 }
 
 /**
