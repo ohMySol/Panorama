@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { GraphResponse, GraphNode as BackendGraphNode, GraphEdge as BackendGraphEdge } from "@risk-terminal/shared";
 import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
+import { useSelectedNode } from "@/lib/context/selected-node.context";
 
 interface Node {
     id: string;
@@ -33,13 +34,18 @@ export const DashboardGraph = () => {
     const [dimensions, setDimensions] = useState({ width: 800, height: 700 });
     const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
     const [isPanning, setIsPanning] = useState(false);
+    const [draggedNode, setDraggedNode] = useState<string | null>(null);
+    const [nodePositions, setNodePositions] = useState<Map<string, { x: number; y: number }>>(new Map());
     const panStartRef = useRef({ x: 0, y: 0 });
+    const dragStartRef = useRef({ x: 0, y: 0, nodeX: 0, nodeY: 0 });
+    const rafIdRef = useRef<number | null>(null);
     const { data: graphData } = useLatestGraphAnalysis();
+    const { setSelectedNode } = useSelectedNode();
 
     // Convert backend data to graph layout
-    const { nodes, edges } = useMemo(() => {
+    const { initialNodes, edges } = useMemo(() => {
         if (!graphData) {
-            return { nodes: [], edges: [] };
+            return { initialNodes: [], edges: [] };
         }
 
         // Build adjacency map to understand hierarchy
@@ -51,22 +57,22 @@ export const DashboardGraph = () => {
             childrenMap.get(edge.from)!.push(edge.to);
         });
 
-        // Calculate positions using hierarchical layout
-        const nodePositions = new Map<string, { x: number; y: number; level: number }>();
+        // Calculate positions using hierarchical layout with MORE SPACING
+        const calculatedPositions = new Map<string, { x: number; y: number; level: number }>();
         const visited = new Set<string>();
         
         const calculatePositions = (address: string, level: number, parentX: number, siblingIndex: number, totalSiblings: number) => {
             if (visited.has(address)) return;
             visited.add(address);
 
-            const levelHeight = 200;
-            const y = 80 + level * levelHeight;
+            const levelHeight = 300; // Increased from 200
+            const y = 100 + level * levelHeight;
             
-            // Spread nodes horizontally based on their position among siblings
-            const spreadWidth = 800;
+            // Much wider spread for siblings
+            const spreadWidth = 1200; // Increased from 800
             const x = parentX + (siblingIndex - (totalSiblings - 1) / 2) * (spreadWidth / Math.max(totalSiblings, 1));
 
-            nodePositions.set(address, { x, y, level });
+            calculatedPositions.set(address, { x, y, level });
 
             const children = childrenMap.get(address) || [];
             children.forEach((childAddress, index) => {
@@ -74,12 +80,12 @@ export const DashboardGraph = () => {
             });
         };
 
-        // Start from root
-        calculatePositions(graphData.root, 0, 400, 0, 1);
+        // Start from root with centered position
+        calculatePositions(graphData.root, 0, 600, 0, 1);
 
         // Convert to Node format
         const layoutNodes: Node[] = graphData.nodes.map(node => {
-            const pos = nodePositions.get(node.address) || { x: 400, y: 400, level: 0 };
+            const pos = calculatedPositions.get(node.address) || { x: 600, y: 400, level: 0 };
             const isRoot = node.address === graphData.root;
             
             return {
@@ -99,8 +105,25 @@ export const DashboardGraph = () => {
             to: edge.to,
         }));
 
-        return { nodes: layoutNodes, edges: layoutEdges };
+        return { initialNodes: layoutNodes, edges: layoutEdges };
     }, [graphData]);
+
+    // Initialize node positions
+    useEffect(() => {
+        const positions = new Map<string, { x: number; y: number }>();
+        initialNodes.forEach(node => {
+            positions.set(node.id, { x: node.x, y: node.y });
+        });
+        setNodePositions(positions);
+    }, [initialNodes]);
+
+    // Get current nodes with updated positions
+    const nodes = useMemo(() => {
+        return initialNodes.map(node => ({
+            ...node,
+            ...(nodePositions.get(node.id) || { x: node.x, y: node.y })
+        }));
+    }, [initialNodes, nodePositions]);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -152,28 +175,74 @@ export const DashboardGraph = () => {
     }, [handleWheel]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        if (e.button === 0) {
+        if (e.button === 0 && !draggedNode) {
             setIsPanning(true);
             panStartRef.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
         }
-    }, [transform.x, transform.y]);
+    }, [transform.x, transform.y, draggedNode]);
+
+    const handleNodeMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+        e.stopPropagation();
+        const node = nodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        setDraggedNode(nodeId);
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        dragStartRef.current = {
+            x: e.clientX,
+            y: e.clientY,
+            nodeX: node.x,
+            nodeY: node.y,
+        };
+    }, [nodes]);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
-        if (isPanning) {
+        if (isPanning && !draggedNode) {
             setTransform(prev => ({
                 ...prev,
                 x: e.clientX - panStartRef.current.x,
                 y: e.clientY - panStartRef.current.y,
             }));
+        } else if (draggedNode) {
+            // Cancel previous frame if it hasn't executed yet
+            if (rafIdRef.current !== null) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+            
+            // Use requestAnimationFrame to throttle updates
+            rafIdRef.current = requestAnimationFrame(() => {
+                const dx = (e.clientX - dragStartRef.current.x) / transform.scale;
+                const dy = (e.clientY - dragStartRef.current.y) / transform.scale;
+
+                setNodePositions(prev => {
+                    const newPositions = new Map(prev);
+                    newPositions.set(draggedNode, {
+                        x: dragStartRef.current.nodeX + dx,
+                        y: dragStartRef.current.nodeY + dy,
+                    });
+                    return newPositions;
+                });
+                
+                rafIdRef.current = null;
+            });
         }
-    }, [isPanning]);
+    }, [isPanning, draggedNode, transform.scale]);
 
     const handleMouseUp = useCallback(() => {
         setIsPanning(false);
+        setDraggedNode(null);
+        
+        // Cancel any pending animation frame
+        if (rafIdRef.current !== null) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+        }
     }, []);
 
     useEffect(() => {
-        if (isPanning) {
+        if (isPanning || draggedNode) {
             window.addEventListener("mousemove", handleMouseMove);
             window.addEventListener("mouseup", handleMouseUp);
             return () => {
@@ -181,7 +250,7 @@ export const DashboardGraph = () => {
                 window.removeEventListener("mouseup", handleMouseUp);
             };
         }
-    }, [isPanning, handleMouseMove, handleMouseUp]);
+    }, [isPanning, draggedNode, handleMouseMove, handleMouseUp]);
 
     const getNodeById = useCallback((id: string) => nodes.find(n => n.id === id), [nodes]);
 
@@ -234,7 +303,7 @@ export const DashboardGraph = () => {
         <div 
             ref={containerRef}
             className="flex flex-1 relative bg-[#0a0a0a] p-6 overflow-hidden select-none"
-            style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+            style={{ cursor: isPanning ? 'grabbing' : draggedNode ? 'grabbing' : 'grab' }}
             onMouseDown={handleMouseDown}
         >
             <svg
@@ -267,7 +336,6 @@ export const DashboardGraph = () => {
                                     strokeWidth={isHighlighted ? 2.5 : 1.5}
                                     fill="none"
                                     strokeDasharray={edge.fromNode.type === "root" || edge.toNode.type === "root" ? "0" : "4 4"}
-                                    style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
                                 />
                             );
                         })}
@@ -287,7 +355,17 @@ export const DashboardGraph = () => {
                                     transform={`translate(${node.x - width / 2}, ${node.y - height / 2})`}
                                     onMouseEnter={() => setHoveredNode(node.id)}
                                     onMouseLeave={() => setHoveredNode(null)}
-                                    style={{ cursor: 'pointer' }}
+                                    onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                                    onClick={() => {
+                                        const fullNode = graphData.nodes.find(n => n.address === node.id);
+                                        if (fullNode) {
+                                            setSelectedNode(fullNode);
+                                        }
+                                    }}
+                                    style={{ 
+                                        cursor: draggedNode === node.id ? 'grabbing' : 'grab',
+                                        willChange: draggedNode === node.id ? 'transform' : 'auto'
+                                    }}
                                     filter={isHovered ? "url(#glow)" : undefined}
                                 >
                                     <rect
@@ -297,7 +375,6 @@ export const DashboardGraph = () => {
                                         fill="#0f0f0f"
                                         stroke={color}
                                         strokeWidth={isHovered ? 2.5 : 1.5}
-                                        style={{ transition: 'stroke-width 0.2s' }}
                                     />
 
                                     <rect
@@ -316,6 +393,7 @@ export const DashboardGraph = () => {
                                         fontSize={isRoot ? 16 : 13}
                                         fontFamily="monospace"
                                         fontWeight="500"
+                                        pointerEvents="none"
                                     >
                                         {node.label}
                                     </text>
@@ -327,6 +405,7 @@ export const DashboardGraph = () => {
                                         fontSize={10}
                                         fontFamily="monospace"
                                         style={{ textTransform: 'uppercase' }}
+                                        pointerEvents="none"
                                     >
                                         {node.subtitle}
                                     </text>
@@ -339,6 +418,7 @@ export const DashboardGraph = () => {
                                         fontFamily="monospace"
                                         fontWeight="bold"
                                         textAnchor="end"
+                                        pointerEvents="none"
                                     >
                                         {node.risk}
                                     </text>
