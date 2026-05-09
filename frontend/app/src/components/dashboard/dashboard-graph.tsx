@@ -292,7 +292,7 @@ export const DashboardGraph = () => {
     return (
         <div 
             ref={containerRef}
-            className="flex flex-1 relative bg-[#0a0a0a] p-6 overflow-hidden select-none"
+            className="flex flex-1 relative bg-[#0a0a0a] overflow-hidden select-none"
             style={{ cursor: isPanning ? 'grabbing' : draggedNode ? 'grabbing' : 'grab' }}
             onMouseDown={handleMouseDown}
         >

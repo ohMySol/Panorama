@@ -50,26 +50,33 @@ export async function generateProtocolSummary(graphData: GraphResponse): Promise
             .filter(n => n.tvlUsd !== null)
             .reduce((sum, n) => sum + (n.tvlUsd || 0), 0);
 
-        const prompt = `You are a DeFi security analyst. Analyze this protocol and provide a detailed technical summary (4-6 sentences).
+        const prompt = `You are a DeFi protocol analyst. Analyze this smart contract system and provide a comprehensive technical description in 1-2 long, detailed sentences (similar to a technical specification).
 
-Protocol Data:
-- Contracts: ${totalNodes}
-- Dependencies: ${totalEdges}
-- Risk Score: ${riskScore}/100
-- Types: ${nodeTypes.join(', ')}
-- Categories: ${categories.join(', ')}
-${totalTVL > 0 ? `- TVL: $${totalTVL.toLocaleString()}` : ''}
-${topRiskFlags.length > 0 ? `- Risks: ${topRiskFlags.join(', ')}` : ''}
+Protocol Analysis Data:
+- Contract types: ${nodeTypes.join(', ')}
+- Protocol components: ${categories.join(', ')}
+- Risk level: ${riskScore > 70 ? 'High' : riskScore > 40 ? 'Medium' : 'Low'} (${riskScore}/100)
+${totalTVL > 0 ? `- Total Value Locked: $${totalTVL.toLocaleString()}` : ''}
+${topRiskFlags.length > 0 ? `- Key risk factors: ${topRiskFlags.join(', ')}` : ''}
 
-Provide a comprehensive summary covering: 1) Protocol architecture and main components, 2) Key dependencies and their roles, 3) Risk assessment and security concerns, 4) Overall complexity and design patterns.
+Your description must include:
+1. What the protocol is (vault, lending market, DEX, etc.) and its specific name/purpose
+2. The underlying architecture and standards used (ERC-4626, Morpho, Compound, etc.)
+3. How it works - what it accepts, where it deploys capital, how it generates yield
+4. Key integrations and dependencies (oracles, interest rate models, collateral markets, etc.)
+5. Main risk vectors (smart contract risks, admin controls, liquidations, oracle dependencies, etc.)
 
-Summary:`;
+Write in a technical, precise style with specific protocol names and mechanisms. Use semicolons to separate major points within the sentence. Be comprehensive but concise.
+
+Example style: "Контракт 0x... — это DeFi-vault [Name] на базе [Protocol], который принимает депозиты в [Token] и автоматически распределяет ликвидность по [markets] для генерации доходности; управление рисками курирует [Entity], сам vault использует [Standard] архитектуру и взаимодействует с [Dependencies], а основные риски связаны с [Risk Factors]."
+
+Technical Description:`;
 
         const requestBody: HuggingFaceRequest = {
             inputs: prompt,
             parameters: {
-                max_new_tokens: 300,
-                temperature: 0.7,
+                max_new_tokens: 400,
+                temperature: 0.6,
                 top_p: 0.9,
                 return_full_text: false
             }
@@ -108,9 +115,9 @@ Summary:`;
         if (summary) {
             // Remove the prompt if it's included
             summary = summary.replace(prompt, '').trim();
-            // Take first 4-6 sentences
+            // Take first 2-3 long sentences (they can be very detailed)
             const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
-            summary = sentences.slice(0, 6).join('. ') + '.';
+            summary = sentences.slice(0, 3).join('. ') + '.';
         }
 
         return summary || generateFallbackSummary(graphData);
@@ -121,11 +128,9 @@ Summary:`;
 }
 
 /**
- * Generate a simple summary without AI when API is not available
+ * Generate a detailed technical summary without AI when API is not available
  */
 function generateFallbackSummary(graphData: GraphResponse): string {
-    const totalNodes = graphData.nodes.length;
-    const totalEdges = graphData.edges.length;
     const riskScore = graphData.graphRiskScore;
     
     const categories = [...new Set(graphData.nodes.map(n => n.category).filter(Boolean))];
@@ -139,52 +144,67 @@ function generateFallbackSummary(graphData: GraphResponse): string {
     }, {} as Record<string, number>);
     const topRiskFlags = Object.entries(riskFlagCounts)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([flag, count]) => `${flag} (${count})`);
+        .slice(0, 4)
+        .map(([flag]) => flag);
 
     const totalTVL = graphData.nodes
         .filter(n => n.tvlUsd !== null)
         .reduce((sum, n) => sum + (n.tvlUsd || 0), 0);
 
-    // Count nodes by tier
-    const tierCounts = graphData.nodes.reduce((acc, n) => {
-        acc[n.tier] = (acc[n.tier] || 0) + 1;
-        return acc;
-    }, {} as Record<number, number>);
+    // Determine protocol type and architecture
+    let protocolDescription = 'This is a DeFi protocol';
+    let architecture = '';
+    let functionality = '';
+    
+    if (categories.includes('Vault')) {
+        protocolDescription = 'This is a DeFi vault protocol';
+        architecture = 'utilizing vault architecture';
+        functionality = 'that accepts deposits and automatically allocates capital across various markets to generate yield';
+    } else if (categories.includes('Market')) {
+        protocolDescription = 'This is a lending/borrowing protocol';
+        architecture = 'built on market-based architecture';
+        functionality = 'that facilitates lending and borrowing operations with dynamic interest rates';
+    } else if (categories.includes('Token')) {
+        protocolDescription = 'This is a token-based protocol';
+        architecture = 'implementing token standards';
+        functionality = 'that manages token operations and transfers';
+    } else if (categories.includes('Multisig')) {
+        protocolDescription = 'This is a governance-controlled protocol';
+        architecture = 'with multisig governance';
+        functionality = 'that requires multiple signatures for critical operations';
+    }
 
-    let summary = `This protocol consists of ${totalNodes} contract${totalNodes > 1 ? 's' : ''} with ${totalEdges} dependenc${totalEdges === 1 ? 'y' : 'ies'}. `;
-    
-    if (categories.length > 0) {
-        summary += `The system includes ${categories.slice(0, 4).join(', ')} components. `;
+    // Build integrations description
+    let integrations = '';
+    const integrationType = [];
+    if (nodeTypes.includes('oracle') || nodeTypes.includes('chainlink-oracle')) {
+        integrationType.push('oracle systems');
+    }
+    if (nodeTypes.includes('erc20') || nodeTypes.includes('loanToken')) {
+        integrationType.push('token contracts');
+    }
+    if (nodeTypes.includes('morpho-market') || nodeTypes.includes('morpho-vault')) {
+        integrationType.push('Morpho protocol');
     }
     
-    // Add tier distribution
-    const tierInfo = Object.entries(tierCounts)
-        .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .map(([tier, count]) => `Tier ${tier}: ${count}`)
-        .join(', ');
-    summary += `Contract distribution: ${tierInfo}. `;
-    
-    // Add risk assessment
-    summary += `Overall risk score: ${riskScore}/100. `;
-    
+    if (integrationType.length > 0) {
+        integrations = ` and integrates with ${integrationType.join(', ')}`;
+    }
+
+    // Build risk description
+    let riskDescription = '';
     if (topRiskFlags.length > 0) {
-        summary += `Key security concerns: ${topRiskFlags.join(', ')}. `;
+        riskDescription = `, with primary risks related to ${topRiskFlags.join(', ')}`;
     }
+
+    // Construct the summary
+    let summary = `${protocolDescription} ${architecture} ${functionality}${integrations}`;
     
     if (totalTVL > 0) {
-        summary += `Total value locked: $${totalTVL.toLocaleString()}. `;
+        summary += `, managing approximately $${(totalTVL / 1000000).toFixed(1)}M in total value locked`;
     }
-
-    // Add complexity assessment
-    const avgDependencies = totalEdges / totalNodes;
-    if (avgDependencies > 3) {
-        summary += `High complexity with an average of ${avgDependencies.toFixed(1)} dependencies per contract.`;
-    } else if (avgDependencies > 1.5) {
-        summary += `Moderate complexity with interconnected components.`;
-    } else {
-        summary += `Relatively simple architecture with minimal interdependencies.`;
-    }
+    
+    summary += `${riskDescription}.`;
     
     return summary;
 }

@@ -7,7 +7,7 @@ dotenv.config();
 export const DEVELOPMENT: boolean = process.env.NODE_ENV === 'development';
 export const TEST: boolean = process.env.NODE_ENV === 'test';
 
-/* ==================== Server ==================== */
+/* =================== Server ==================== */
 
 export const SERVER_HOSTNAME: string = process.env.SERVER_HOSTNAME ?? 'localhost';
 export const SERVER_PORT: number = process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : 5000;

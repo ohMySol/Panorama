@@ -118,7 +118,7 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
 
     if (!graphData) {
         return (
-            <div className="flex flex-col py-5 px-5">
+            <div className="flex flex-col px-5 pt-5">
                 <div className="flex items-center justify-between mb-4">
                     <h5 className="text-[15px] font-display text-[#C8FF3E]">DEPENDENCY TREE</h5>
                 </div>
@@ -131,7 +131,7 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
     
     if (!treeData) {
         return (
-            <div className="flex flex-col py-5 px-5">
+            <div className="flex flex-col px-5 pt-5">
                 <div className="flex items-center justify-between mb-4">
                     <h5 className="text-[15px] font-display text-[#C8FF3E]">DEPENDENCY TREE</h5>
                 </div>
@@ -143,7 +143,7 @@ export const DependencyTree = ({ graphData }: DependencyTreeProps) => {
     const totalNodes = countNodes(treeData);
 
     return (
-        <div className="flex flex-col py-5 px-5">
+        <div className="flex flex-col px-5 pt-5">
             <div className="flex items-center justify-between mb-4">
                 <h5 className="text-[15px] font-display text-[#C8FF3E]">DEPENDENCY TREE</h5>
                 <span className="text-[15px] font-display italic text-white">{totalNodes} NODES</span>

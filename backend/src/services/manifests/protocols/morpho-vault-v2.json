@@ -3,11 +3,11 @@
     "category": "Vault",
     "fingerprint": ["asset", "adaptersLength", "adapterRegistry", "liquidityAdapter"],
     "directCalls": [
+        { "function": "curator",          "role": "curator"          },
+        { "function": "owner",            "role": "owner"            },
         { "function": "asset",            "role": "loanToken"        },
         { "function": "adapterRegistry",  "role": "adapterRegistry"  },
-        { "function": "liquidityAdapter", "role": "liquidityAdapter" },
-        { "function": "curator",          "role": "curator"          },
-        { "function": "owner",            "role": "owner"            }
+        { "function": "liquidityAdapter", "role": "liquidityAdapter" }
     ],
     "paginatedCalls": [
         {

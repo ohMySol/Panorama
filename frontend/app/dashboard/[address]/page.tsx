@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
   if (isLoading || mutation.isPending) {
     return (
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen items-center justify-center">
+      <div className="flex flex-1 border-t border-t-gray-400 w-full items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     );
@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
   if (error || mutation.error) {
     return (
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen items-center justify-center">
+      <div className="flex flex-1 border-t border-t-gray-400 w-full items-center justify-center">
         <div className="text-red-500">Error: {error?.message || mutation.error?.message}</div>
       </div>
     );
@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen items-center justify-center">
+      <div className="flex flex-1 border-t border-t-gray-400 w-full items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     );
@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
   return (
     <SelectedNodeProvider>
-      <div className="flex flex-1 border-t border-t-gray-400 w-full h-screen">
+      <div className="flex flex-1 border-t border-t-gray-400 w-full">
         <LeftTab />
         <DashboardGraph />
         <RightTab />

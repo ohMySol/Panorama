@@ -3,11 +3,11 @@
     "category": "Vault",
     "fingerprint": ["asset", "MORPHO", "supplyQueue"],
     "directCalls": [
-        { "function": "asset",    "role": "loanToken"    },
-        { "function": "MORPHO",   "role": "protocolCore" },
         { "function": "curator",  "role": "curator"      },
         { "function": "guardian", "role": "guardian"     },
-        { "function": "owner",    "role": "owner"        }
+        { "function": "owner",    "role": "owner"        },
+        { "function": "MORPHO",   "role": "protocolCore" },
+        { "function": "asset",    "role": "loanToken"    }
     ],
     "paginatedCalls": [
         {
