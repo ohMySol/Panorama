@@ -24,6 +24,23 @@ export interface ResolvedDependency {
 }
 
 /**
+ * Metadata for ERC20 tokens
+ */
+export interface ERC20Metadata {
+    symbol: string;
+    decimals: number;
+    totalSupply?: string;
+}
+
+/**
+ * Metadata for Multisig contracts
+ */
+export interface MultisigMetadata {
+    owners: string[];
+    threshold: number;
+}
+
+/**
  * Represents a node in the dependency graph, which extends the ResolvedDependency with additional information.
  * @param riskScore - The risk score of the node (0-100 per node).
  * @param riskFlags - The risk points associated with the node (e.g., ["upgradeable", "RBAC", "timelocks"]).
