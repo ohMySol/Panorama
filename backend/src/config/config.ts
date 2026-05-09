@@ -10,7 +10,7 @@ export const TEST: boolean = process.env.NODE_ENV === 'test';
 /* ==================== Server ==================== */
 
 export const SERVER_HOSTNAME: string = process.env.SERVER_HOSTNAME ?? 'localhost';
-export const SERVER_PORT: number = process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : 3000;
+export const SERVER_PORT: number = process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : 5000;
 
 export const SERVER = {
     hostname: SERVER_HOSTNAME,
