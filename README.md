@@ -28,7 +28,7 @@ Panorama walks the dependency graph from any smart contract entry point down thr
 - 🖱️ **Draggable Graph** - Move nodes around to customize your view
 - 🤖 **AI Protocol Summaries** - Automatic protocol analysis when no node is selected
 
-![Panorama Dashboard](docs/screenshots/dashboard.png)
+![Panorama Dashboard](img/dashboard.png)
 
 ## 🏗️ Architecture
 
