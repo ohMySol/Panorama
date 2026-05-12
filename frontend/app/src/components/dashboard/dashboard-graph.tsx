@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import type { GraphResponse, GraphNode as BackendGraphNode, GraphEdge as BackendGraphEdge } from "@risk-terminal/shared";
 import { useLatestGraphAnalysis } from "@/lib/hooks/useGraphAnalysis";
 import { useSelectedNode } from "@/lib/context/selected-node.context";
 import { getNodeDisplayName, getNodeSubtitle } from "@/lib/utils/node-display";

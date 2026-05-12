@@ -31,13 +31,10 @@ export const CHAIN_IDS = {
 
 export const SOURCIFY_BASE_URL: string = 'https://sourcify.dev/server';
 export const ETHERSCAN_BASE_URL: string = 'https://api.etherscan.io/v2/api';
-export const DEFILLAMA_BASE_URL: string = 'https://api.llama.fi';
 
 export const ETHERSCAN_API_KEY: string = process.env.ETHERSCAN_API_KEY ?? '';
 export const ETHEREUM_RPC_URL: string =
     process.env.ETHEREUM_RPC_URL ?? 'https://ethereum-rpc.publicnode.com';
-export const GROQ_API_KEY: string = process.env.GROQ_API_KEY ?? '';
-export const XAI_API_KEY: string = process.env.XAI_API_KEY ?? '';
 export const HUGGINGFACE_API_KEY: string = process.env.HUGGINGFACE_API_KEY ?? '';
 
 /* ==================== Limits & Timeouts ==================== */
@@ -52,8 +49,6 @@ export const MAX_GRAPH_NODES: number = 50;
 export const HTTP_TIMEOUT_MS: number = 8000;
 // Cache TTL for resolved contracts (ms). 1 hour — contract identity rarely changes.
 export const RESOLVER_CACHE_TTL_MS: number = 60 * 60 * 1000;
-// Cache TTL for TVL values (ms). 5 minutes — balances change continuously.
-export const TVL_CACHE_TTL_MS: number = 5 * 60 * 1000;
 
 /* ==================== Rate Limiting ==================== */
 

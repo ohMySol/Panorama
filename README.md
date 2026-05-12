@@ -16,7 +16,7 @@ Panorama is a smart contract dependency analyzer that visualizes the entire depe
 
 ## 🎯 What is Panorama?
 
-Panorama - is a smart contract dependency analyzer that visualizes the entire dependency graph in a way that you can clearly see what your vault or pool or strategy depends on. Every node in the graph is a standalone smart contract which plays a specific role (e.g.: multisig owner, oracle, lending market, ...) inside your root contract. The nodes have a basic information like number of signers, or found risk flags (e.g: upgradeable proxy) which will be useful durign the research and analysis. 
+Panorama is a smart contract dependency analyzer that visualizes the entire dependency graph in a way that you can clearly see what your vault or pool or strategy depends on. Every node in the graph is a standalone smart contract which plays a specific role (e.g.: multisig owner, oracle, lending market, ...) inside your root contract. The nodes have basic information like number of signers, found risk flags (e.g: upgradeable proxy) which will be useful during the research and analysis. 
 
 ## ✨ Features 
 
@@ -43,7 +43,6 @@ Panorama/
 │   ├── src/
 │   │   ├── app.ts                        # Server entry point
 │   │   ├── clients/                      # External service clients
-│   │   │   ├── defillama.client.ts
 │   │   │   ├── etherscan.client.ts
 │   │   │   ├── http.ts
 │   │   │   ├── rpc.client.ts
@@ -64,18 +63,17 @@ Panorama/
 │   │       ├── graph.service.ts          # BFS dependency-graph builder
 │   │       ├── resolver.service.ts
 │   │       ├── router.service.ts
-│   │       ├── scorer.service.ts
 │   │       ├── manifests/                # Protocol manifests + executor
 │   │       │   ├── executor.ts
 │   │       │   ├── index.ts
 │   │       │   ├── types.ts
 │   │       │   └── protocols/            # erc20, morpho-*, safe-multisig
-│   │       └── risk/                     # Risk scoring engine
+│   │       └── risk/                     # Risk-flag detection (universal + per-profile)
 │   │           ├── index.ts
 │   │           ├── universal.ts
 │   │           ├── types.ts
-│   │           └── profiles/
-│   ├── Dockerfile / Dockerfile.prod
+│   │           └── profiles/token.ts
+│   ├── Dockerfile
 │   └── package.json
 │
 ├── frontend/                             # Next.js (App Router) UI
@@ -86,7 +84,7 @@ Panorama/
 │   │   ├── globals.css
 │   │   ├── dashboard/[address]/page.tsx  # Dynamic analysis page
 │   │   └── src/components/
-│   │       ├── dashboard/                # Graph, node info, risk score, tabs
+│   │       ├── dashboard/                # Graph, node info, metadata, tabs
 │   │       ├── lending/                  # Landing hero, scan input, header
 │   │       └── shared/                   # Background glow, intro
 │   ├── lib/
@@ -94,10 +92,10 @@ Panorama/
 │   │   ├── config/api.config.ts
 │   │   ├── context/selected-node.context.tsx
 │   │   ├── hooks/                        # useGraphAnalysis, useAiSummary
-│   │   ├── utils/                        # error-logger, node-display
+│   │   ├── utils/node-display.ts
 │   │   └── validation/address.validation.ts
 │   ├── public/
-│   ├── Dockerfile / Dockerfile.prod
+│   ├── Dockerfile
 │   └── package.json
 │
 ├── packages/
@@ -105,9 +103,8 @@ Panorama/
 │       ├── index.ts
 │       └── types.ts
 │
-├── img/                                  
+├── img/
 ├── docker-compose.yml
-├── docker-compose.prod.yml
 ├── Makefile
 ├── start.sh
 └── README.md
@@ -138,12 +135,12 @@ Panorama/
 
 **Frontend** (`.env.local`):
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
 **Backend** (`.env`):
 ```env
-PORT=5000
+SERVER_PORT=5000
 ETHERSCAN_API_KEY=your_api_key_here
 # Optional: AI-powered protocol summaries (free!)
 HUGGINGFACE_API_KEY=your_huggingface_token_here
@@ -158,9 +155,12 @@ HUGGINGFACE_API_KEY=your_huggingface_token_here
 
 **Docker:**
 ```bash
-make dev       # Start development environment
+make dev       # Start development environment (detached)
+make up        # Start containers in foreground
+make build     # Rebuild containers
 make logs      # View logs
 make down      # Stop containers
+make restart   # Restart containers
 make clean     # Remove all containers and volumes
 ```
 
@@ -179,7 +179,7 @@ npm run dev    # Start Next.js dev server
 
 ```bash
 # Start the entire stack
-docker-compose up
+docker compose up
 
 # Or use the convenience script
 ./start.sh
@@ -236,13 +236,27 @@ npm run dev
   "root": "0x...",
   "nodes": [...],
   "edges": [...],
-  "summary": "..."
+  "graphRiskScore": 0,
+  "summary": null
 }
 ```
 - `root` - the root contract address
-- `nodes` - the node object which describes found dependency inside the root contract
-- `edges` - the edge object which describes the relationship of the nodes (e.g: node1 --> node2, means node2 was found inside node1).
-- `summary` - AI generated summary (at the moment skipped).
+- `nodes` - node objects describing each dependency found inside the root contract
+- `edges` - edge objects describing the relationship between nodes (e.g. `node1 --> node2` means `node2` was found inside `node1`)
+- `graphRiskScore` - aggregate risk score (currently always `0` — scoring engine is disabled)
+- `summary` - always `null` here; the AI summary is fetched separately via `POST /api/ai/summary`
+
+**POST** `/api/ai/summary`
+
+Body: the full `GraphResponse` object returned by `/api/graph`.
+
+**Response:**
+```json
+{
+  "summary": "..."
+}
+```
+- `summary` - one or two sentences of AI-generated protocol description. Uses Hugging Face Inference if `HUGGINGFACE_API_KEY` is set, otherwise falls back to a deterministic template built from the graph data.
 
 ## 🤝 Contributing
 

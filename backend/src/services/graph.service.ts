@@ -8,7 +8,6 @@ import {
     type ManifestResult,
 } from './manifests';
 import { runRiskChecks } from './risk';
-import { scoreGraph, scoreNode } from './scorer.service';
 
 /**
  * Builds a complete dependency graph for a contract via breadth-first traversal.
@@ -84,9 +83,10 @@ export async function buildDependencyGraph(
             }
         }
 
-        // 4. Run here specific checks based on the adapter kind (universal, erc-20, etc) and compute the node risk score.
+        // 4. Run here specific checks based on the adapter kind (universal, erc-20, etc).
+        //    Risk *scoring* is currently disabled — scorer.service was removed; nodes ship with score 0.
         const findings = runRiskChecks(resolved.abi, adapterKind);
-        const riskScore = scoreNode(resolved.tier, findings);
+        const riskScore = 0;
 
         const node: GraphNode = {
             address: resolved.address,
@@ -125,14 +125,12 @@ export async function buildDependencyGraph(
     }
 
     const nodes = Array.from(nodesByAddress.values());
-    // 6. Weighted average of riskScores.
-    const riskScore = scoreGraph(nodes, rootAddress, depthByAddress);
 
     return {
         root: rootAddress,
         nodes,
         edges,
-        graphRiskScore: riskScore,
+        graphRiskScore: 0,
         summary: null,
     };
 }
