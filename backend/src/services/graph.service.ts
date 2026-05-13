@@ -19,9 +19,8 @@ import { runRiskChecks } from './risk';
  *      b. Resolve it (Sourcify → Etherscan → Unknown).
  *      c. Run the router to choose an adapter.
  *      d. Run the adapter to discover outbound dependencies.
- *      e. Run risk checks, score the node, store it.
+ *      e. Run risk checks, attach findings as flags on the node, store it.
  *      f. Enqueue dependencies that are within depth and not yet seen.
- *   3. Compute the overall graph risk score.
  *
  * Why BFS instead of recursion:
  *   - Constant-stack — depth-5 graphs of fan-out 10 produce 10⁵ nodes if unbounded;

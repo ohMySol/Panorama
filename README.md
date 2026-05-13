@@ -214,6 +214,138 @@ npm run dev
 4. **Inspect Nodes** - Click on any node to see detailed information
 5. **Navigate** - Use zoom controls and drag nodes to customize your view
 
+## 🗂️ Protocol Manifests
+
+Manifests are the mechanism by which Panorama knows how to traverse a specific protocol. Instead of writing a TypeScript code for every protocol, each protocol is described as a **JSON file** that declares which on-chain functions to call, what to do with the results, and what metadata to surface in the UI. A single generic executor reads any manifest and runs the same pipeline.
+
+### How the executor works
+
+When a contract is identified as a known protocol, the executor runs up to three batched RPC rounds:
+
+**Round 1 — direct getters + paginated lengths + metadata**
+All single-call getters are batched into one multicall. This includes addresses returned by direct getters (e.g. `owner`, `curator`), the lengths of any lists (e.g. `supplyQueueLength`), and metadata values like token `symbol` or multisig `threshold`.
+
+**Round 2 — paginated items**
+For each list discovered in Round 1, the executor fetches every item up to `maxItemsPerSource`. Items are either addresses (emitted as edges directly) or `bytes32` identifiers that need a further lookup.
+
+**Round 3 — cross-contract follow-ups**
+When items are `bytes32` IDs (e.g. Morpho market IDs), the executor calls a second contract to unpack them into concrete addresses. For example, Morpho Vault market IDs are resolved against the Morpho Blue core contract via `idToMarketParams`, yielding the loan token, collateral token, oracle, and interest rate model — all in one extra multicall.
+
+**Every function name in a manifest is validated against the contract's resolved ABI before any call is issued**. A function not present in the ABI is silently skipped, so a manifest written for a newer contract version never crashes against an older one.
+
+### Manifest file structure
+
+```jsonc
+{
+  "id": "morpho",           // AdapterKind — used as GraphNode.type and by risk profiles
+  "category": "Vault",      // UI chip label ("Vault", "Market", "Token", "Multisig", …)
+  "fingerprint": [          // ALL of these function names must exist in the ABI to match
+    "asset", "MORPHO", "supplyQueue"
+  ],
+  "directCalls": [          // Single getters that return one address each --> one edge each
+    { "function": "owner",  "role": "owner"   },
+    { "function": "asset",  "role": "loanToken" }
+  ],
+  "paginatedCalls": [       // Length-prefixed list getters --> one edge per item
+    {
+      "sources": [
+        { "lengthFunction": "supplyQueueLength", "itemFunction": "supplyQueue" }
+      ],
+      "itemType": "bytes32",        // "address" --> direct edges; "bytes32" --> needs followUp
+      "maxItemsPerSource": 5,
+      "followUp": {                 // Only needed when itemType is "bytes32"
+        "addressFromRole": "protocolCore",   // Role of a directCall whose result is the target
+        "function": { ... },                 // Inline ABI of the function to call on that target
+        "extract": [                         // Which tuple fields to pull out and with what role
+          { "index": 0, "role": "loanToken" },
+          { "index": 2, "role": "oracle"    }
+        ],
+        "anchorFromTarget": true    // Attribute edges to the target contract, not the vault
+      }
+    }
+  ],
+  "metadataCalls": [        // Read-only facts surfaced in the UI; never produce edges
+    { "function": "symbol",      "field": "symbol"   },
+    { "function": "getOwners",   "field": "signerCount", "project": "length" },
+    { "function": "getThreshold","field": "signerThreshold" }
+  ]
+}
+```
+
+### Existing manifests
+
+| File | `id` | `category` | Fingerprint |
+|---|---|---|---|
+| `morpho-vault-v1.json` | `morpho` | Vault | `asset`, `MORPHO`, `supplyQueue` |
+| `morpho-vault-v2.json` | `morphoV2` | Vault | `asset`, `MORPHO`, `supplyQueue`, `publicAllocator` |
+| `morpho-blue.json` | `morphoBlue` | Market | `idToMarketParams`, `createMarket`, `accrueInterest` |
+| `safe-multisig.json` | `safe` | Multisig | `getOwners`, `getThreshold`, `isOwner` |
+| `erc20.json` | `erc20` | Token | `transfer`, `balanceOf`, `totalSupply` |
+
+Matching is **first-match-wins** in the order they are registered in `manifests/index.ts`. More specific protocols (Morpho Vault) are listed before broader ones (ERC-20) because a MetaMorpho vault is also ERC-20-compatible.
+
+### Adding a new protocol
+
+**1. Create the JSON manifest** in `backend/src/services/manifests/protocols/`:
+
+```jsonc
+// protocols/aave-v3-pool.json
+{
+  "id": "aaveV3",
+  "category": "Lending",
+  "fingerprint": ["supply", "borrow", "getReserveData"],
+  "directCalls": [
+    { "function": "ADDRESSES_PROVIDER", "role": "addressesProvider" }
+  ],
+  "metadataCalls": [
+    { "function": "MAX_NUMBER_RESERVES", "field": "maxReserves" }
+  ]
+}
+```
+
+Choose a `fingerprint` of 2–4 functions that are **unique** to this protocol. Avoid functions present in ERC-20 (`transfer`, `balanceOf`) or other broad interfaces, otherwise the manifest may match unintended contracts.
+
+**2. Register the `id` in `AdapterKind`** (`manifests/types.ts`):
+
+```ts
+export type AdapterKind =
+  | 'morphoBlue' | 'morpho' | 'morphoV2'
+  | 'erc20' | 'safe'
+  | 'aaveV3'       // add your new id here
+  | 'fallback';
+```
+
+**3. Import and register the manifest** in `manifests/index.ts`:
+
+```ts
+import aaveV3Pool from './protocols/aave-v3-pool.json';
+
+const MANIFESTS: readonly ProtocolManifest[] = [
+  morphoV1 as ProtocolManifest,
+  morphoV2 as ProtocolManifest,
+  morphoBlue as ProtocolManifest,
+  aaveV3Pool as ProtocolManifest,   // add before erc20/safe to avoid false-positive matches
+  safeMultisig as ProtocolManifest,
+  erc20 as ProtocolManifest,
+];
+```
+
+**4. Optionally add a risk profile** in `risk/profiles/` if this protocol has token-level or protocol-specific risk signals worth flagging (e.g. pausing mechanisms, admin key patterns). Register it in `risk/index.ts` under `PROFILE_REGISTRY`.
+
+That is everything needed — no changes to the graph builder, executor, resolver, or frontend. The manifest is picked up automatically the next time a contract with the matching fingerprint is resolved.
+
+### Limitations
+
+- **Requires a verified contract.** Fingerprint matching runs against the resolved ABI. If a contract has no source on Sourcify or Etherscan, the ABI is `null`, no manifest can match, and the node becomes a leaf with no discovered dependencies. Unverified contracts are invisible to the manifest system.
+
+- **Fingerprints are heuristics, not guarantees.** Two different protocols can expose the same set of function names. A wrong match silently produces incorrect edges. The safest fingerprints are 3–4 functions that are unique to a protocol's interface, but there is no enforcement - a bad fingerprint will not error, it will just graph the wrong thing.
+
+- **No conditional logic.** Manifests are declarative JSON. If a protocol's dependency structure is conditional (e.g. "call `X` only if flag `Y` is set"), that cannot be expressed. The executor always runs all declared calls. Protocols with dynamic or branching dependency graphs need a custom TypeScript adapter instead.
+
+- **Only view calls, no event logs.** The executor only issues `eth_call` reads. Dependencies discovered via emitted events — common in factory patterns where child contracts are created on-chain — are completely invisible. A protocol that registers markets through events rather than exposing them via a length/item getter cannot be covered by a manifest.
+
+- **`followUp` ABI is inlined and static.** The ABI fragment for a cross-contract lookup must be written directly into the manifest JSON. If the target contract is upgraded and the function signature changes, the manifest silently starts returning nothing rather than erroring. There is no version pinning or ABI re-resolution.
+
 ## 📚 API Documentation
 
 ### Endpoints

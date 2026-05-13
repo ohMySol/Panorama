@@ -56,7 +56,10 @@ export async function fetchBytecode(address: string, chainId: number): Promise<s
  * proxies by their well-known implementation slots (EIP-1967, Safe master copy)
  * without relying on getter functions, which can revert (transparent proxies)
  * or be missing from the proxy's ABI (Safe).
- *
+ * 
+ * @param address - Contract address.
+ * @param slot - Storage slot to read, as a 0x-prefixed hex string (e.g. "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc").
+ * @param chainId - Numeric chain ID (e.g. 1 for Ethereum mainnet).
  * @returns The 32-byte hex word at the slot, or `null` on RPC error.
  */
 export async function readStorageAt(
